@@ -29,38 +29,6 @@ export async function handlePlayerJoin(client, interaction, session) {
     lastGuessCount: 0
   });
 
-  session.players.push({
-    userId,
-    username: "1",
-    avatarUrl,
-    guessHistory: [],
-    lastGuessCount: 0
-  });
-
-  session.players.push({
-    userId,
-    username: "2",
-    avatarUrl,
-    guessHistory: [],
-    lastGuessCount: 0
-  });
-
-  session.players.push({
-    userId,
-    username: "3",
-    avatarUrl,
-    guessHistory: [],
-    lastGuessCount: 0
-  });
-
-  session.players.push({
-    userId,
-    username: "4",
-    avatarUrl,
-    guessHistory: [],
-    lastGuessCount: 0
-  });
-
   console.log(`➕ Added ${username} to session ${session.sessionId}. Total players: ${session.players.length}`);
 
   await notifyPlayerJoin(session.sessionId, userId, username, avatarUrl, session.guildId, getTodayDate());
