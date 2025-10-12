@@ -24,7 +24,7 @@ export async function startGameSession(interaction, client, activeSessions) {
     );
 
     await interaction.editReply({
-      content: `Click **Play** to join today's Synapse #${puzzleNumber}`,
+      content: `Click **Play now!** to join today's Synapse #${puzzleNumber}`,
       files: [attachment],
       components: [row]
     });
@@ -42,7 +42,7 @@ export async function startGameSession(interaction, client, activeSessions) {
 
     const updatedRow = createPlayButton(sessionId);
     await interaction.editReply({
-      content: `Click **Play** to join today's Synapse #${puzzleNumber}`,
+      content: `Click **Play now!** to join today's Synapse #${puzzleNumber}`,
       files: [attachment],
       components: [updatedRow]
     });
