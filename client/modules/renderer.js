@@ -83,7 +83,6 @@ function renderCompletedPlayers(serverGameState) {
             return `
           <div class="player-result-card">
             ${renderPlayerAvatar(player, userId)}
-            <div class="player-name">${escapeHtml(player.username)}</div>
             ${renderGuessGrid(guessHistory)}
           </div>
         `;

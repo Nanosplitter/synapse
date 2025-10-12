@@ -217,13 +217,6 @@ async function drawPlayerSection(ctx, player, x, y, width) {
     }
   }
 
-  // Draw username centered below avatar
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 14px 'Liberation Sans', Arial, sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(username, x + width / 2, y - 10);
-  ctx.textAlign = "left"; // Reset alignment
-
   // Grid settings
   const cellSize = 40;
   const cellSpacing = 6;
