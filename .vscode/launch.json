@@ -1,0 +1,36 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node-terminal",
+      "name": "Server",
+      "request": "launch",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}/server"
+    },
+    {
+      "type": "node-terminal",
+      "name": "Client",
+      "request": "launch",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}/client"
+    },
+    {
+      "type": "node-terminal",
+      "name": "Bot",
+      "request": "launch",
+      "command": "npm run start",
+      "cwd": "${workspaceFolder}/bot"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "All Services",
+      "configurations": ["Server", "Client", "Bot"],
+      "stopAll": true
+    }
+  ]
+}
