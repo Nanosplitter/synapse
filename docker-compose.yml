@@ -4,9 +4,11 @@ services:
   synapse-game:
     build:
       context: .
+      target: server
       args:
         VITE_DISCORD_CLIENT_ID: ${VITE_DISCORD_CLIENT_ID}
         DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+        VITE_DEV_MODE: ${VITE_DEV_MODE}
     container_name: synapse-game
     restart: unless-stopped
     ports:
@@ -18,3 +20,41 @@ services:
       - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
     env_file:
       - .env
+    networks:
+      - synapse-network
+
+  synapse-bot:
+    build:
+      context: .
+      target: bot
+    container_name: synapse-bot
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+      - MYSQL_CONNECTION_STRING=${MYSQL_CONNECTION_STRING}
+      - VITE_DISCORD_CLIENT_ID=${VITE_DISCORD_CLIENT_ID}
+      - RECAP_DELAY_HOURS=${RECAP_DELAY_HOURS}
+      - SERVER_URL=http://synapse-game:3001
+    env_file:
+      - .env
+    depends_on:
+      - synapse-game
+    networks:
+      - synapse-network
+
+  cloudflare-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare-tunnel
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - synapse-game
+    networks:
+      - synapse-network
+
+networks:
+  synapse-network:
+    driver: bridge

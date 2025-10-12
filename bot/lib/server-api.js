@@ -1,6 +1,6 @@
 import fetch from "node-fetch";
 
-const SERVER_URL = "http://localhost:3001";
+const SERVER_URL = process.env.SERVER_URL || "http://localhost:3001";
 
 export async function notifySessionStart(sessionId, guildId, channelId, messageId) {
   try {

@@ -2,14 +2,26 @@ import fetch from "node-fetch";
 import { createPlayButton, formatPlayerMessage, updateSessionMessage, createGameAttachment } from "./discord-utils.js";
 import { trackSessionCompletion } from "./recap.js";
 
-export async function checkSessionUpdates(client, activeSessions) {
-  if (activeSessions.size === 0) return;
+const SERVER_URL = process.env.SERVER_URL || "http://localhost:3001";
 
-  console.log(`🔍 Polling ${activeSessions.size} active session(s)...`);
+let wasPolling = false;
+
+export async function checkSessionUpdates(client, activeSessions) {
+  const isPolling = activeSessions.size > 0;
+
+  if (isPolling && !wasPolling) {
+    console.log(`🔍 Started polling ${activeSessions.size} active session(s)`);
+  } else if (!isPolling && wasPolling) {
+    console.log(`⏸️ Stopped polling - no active sessions`);
+  }
+
+  wasPolling = isPolling;
+
+  if (!isPolling) return;
 
   for (const [sessionId, session] of activeSessions.entries()) {
     try {
-      const response = await fetch(`http://localhost:3001/api/sessions/${sessionId}`);
+      const response = await fetch(`${SERVER_URL}/api/sessions/${sessionId}`);
       if (!response.ok) {
         if (response.status !== 404) {
           console.warn(`Session ${sessionId} returned ${response.status}`);
@@ -27,7 +39,6 @@ export async function checkSessionUpdates(client, activeSessions) {
       }
 
       const serverPlayers = serverSession.players || {};
-      console.log(`📊 Session ${sessionId}: ${Object.keys(serverPlayers).length} player(s)`);
 
       let hasUpdates = false;
 

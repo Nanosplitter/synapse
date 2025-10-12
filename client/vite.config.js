@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   envDir: "../",
   server: {
-    allowedHosts: ["connections.nanosplitter.com", ".trycloudflare.com"],
+    allowedHosts: ["synapse.nanosplitter.com", ".trycloudflare.com"],
     proxy: {
       "/api": {
         target: "http://localhost:3001",
