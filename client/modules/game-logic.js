@@ -12,7 +12,9 @@ import {
   clearSelection,
   recordGuess,
   getGuessHistory,
-  shuffleDisplayOrder
+  shuffleDisplayOrder,
+  setLastWrongGuess,
+  updateGameState
 } from "./game-state.js";
 import { getCurrentUser, getGuildId } from "./discord.js";
 import { fetchGameState, saveGameResult as apiSaveGameResult, updateSession } from "./api.js";
@@ -107,7 +109,10 @@ async function updateSessionState() {
 export async function handleSubmit() {
   const gameState = getGameState();
 
-  if (gameState.selectedWords.length !== 4) return;
+  if (gameState.selectedWords.length !== 4 || gameState.isSubmitting) return;
+
+  gameState.isSubmitting = true;
+  updateGameState({ isSubmitting: true });
 
   const matchedCategory = checkCategoryMatch(gameState.selectedWords);
 
@@ -125,6 +130,7 @@ export async function handleSubmit() {
     }
 
     await wait(1000);
+    gameState.isSubmitting = false;
     await refreshGame();
   } else {
     const guessedWords = [...gameState.selectedWords];
@@ -137,6 +143,7 @@ export async function handleSubmit() {
 
     recordGuess(gameState.selectedWords, false, null, wordDifficulties);
     incrementMistakes();
+    setLastWrongGuess(gameState.selectedWords);
 
     await updateSessionState();
 
@@ -151,6 +158,7 @@ export async function handleSubmit() {
     }
 
     await wait(1500);
+    gameState.isSubmitting = false;
     await refreshGame();
   }
 }

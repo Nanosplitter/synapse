@@ -13,7 +13,9 @@ let gameState = {
   isGameOver: false,
   hasPlayed: false,
   sessionId: null,
-  displayOrder: null
+  displayOrder: null,
+  lastWrongGuess: null,
+  isSubmitting: false
 };
 
 let gameData = null;
@@ -40,7 +42,9 @@ export function resetGameState() {
     isGameOver: false,
     hasPlayed: false,
     sessionId: null,
-    displayOrder: null
+    displayOrder: null,
+    lastWrongGuess: null,
+    isSubmitting: false
   };
 }
 
@@ -60,9 +64,11 @@ export function updateGameState(updates) {
 export function toggleWordSelection(word) {
   if (gameState.selectedWords.includes(word)) {
     gameState.selectedWords = gameState.selectedWords.filter((w) => w !== word);
+    gameState.lastWrongGuess = null;
     return false;
   } else if (gameState.selectedWords.length < GAME_CONFIG.selectableWords) {
     gameState.selectedWords.push(word);
+    gameState.lastWrongGuess = null;
     return true;
   }
   return false;
@@ -73,6 +79,7 @@ export function toggleWordSelection(word) {
  */
 export function clearSelection() {
   gameState.selectedWords = [];
+  gameState.lastWrongGuess = null;
 }
 
 /**
@@ -225,4 +232,24 @@ export function setDisplayOrder(order) {
 export function shuffleDisplayOrder() {
   const remaining = getRemainingWords();
   gameState.displayOrder = [...remaining].sort(() => Math.random() - 0.5);
+}
+
+/**
+ * Set the last wrong guess to prevent spam submission
+ * @param {string[]} words - Array of words that were guessed incorrectly
+ */
+export function setLastWrongGuess(words) {
+  gameState.lastWrongGuess = words ? [...words].sort() : null;
+}
+
+/**
+ * Check if the current selection matches the last wrong guess
+ * @returns {boolean} - True if current selection is same as last wrong guess
+ */
+export function isRepeatGuess() {
+  if (!gameState.lastWrongGuess || gameState.selectedWords.length !== 4) {
+    return false;
+  }
+  const currentSorted = [...gameState.selectedWords].sort();
+  return currentSorted.every((word, idx) => word === gameState.lastWrongGuess[idx]);
 }

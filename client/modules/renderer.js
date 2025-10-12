@@ -10,7 +10,8 @@ import {
   clearSelection,
   getCurrentDate,
   getDisplayOrder,
-  setDisplayOrder
+  setDisplayOrder,
+  isRepeatGuess
 } from "./game-state.js";
 import { handleSubmit, handleShuffle } from "./game-logic.js";
 import { getCurrentUser, getDiscordSdk } from "./discord.js";
@@ -434,7 +435,13 @@ function attachEventListeners() {
     updateSubmitButton();
   });
 
-  document.getElementById("submit")?.addEventListener("click", handleSubmit);
+  document.getElementById("submit")?.addEventListener("click", async () => {
+    const submitBtn = document.getElementById("submit");
+    if (submitBtn && !submitBtn.disabled) {
+      submitBtn.disabled = true;
+      await handleSubmit();
+    }
+  });
 }
 
 /**
@@ -444,7 +451,7 @@ function updateSubmitButton() {
   const gameState = getGameState();
   const submitBtn = document.getElementById("submit");
   if (submitBtn) {
-    submitBtn.disabled = gameState.selectedWords.length !== 4;
+    submitBtn.disabled = gameState.selectedWords.length !== 4 || isRepeatGuess() || gameState.isSubmitting;
   }
 }
 
