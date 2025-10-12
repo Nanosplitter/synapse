@@ -9,6 +9,7 @@
     "tests",
     "ci",
     "dependencies",
-    "vscode"
+    "vscode",
+    "cd"
   ]
 }
