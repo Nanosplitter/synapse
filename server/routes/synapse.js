@@ -3,9 +3,18 @@ import fetch from "node-fetch";
 
 const router = Router();
 
+const gameCache = new Map();
+
 router.get("/api/synapse/:date", async (req, res) => {
   try {
     const { date } = req.params;
+
+    if (gameCache.has(date)) {
+      console.log(`Cache hit for date: ${date}`);
+      return res.json(gameCache.get(date));
+    }
+
+    console.log(`Cache miss for date: ${date}, fetching from NYT`);
     const response = await fetch(`https://www.nytimes.com/svc/connections/v2/${date}.json`);
 
     if (!response.ok) {
@@ -13,6 +22,8 @@ router.get("/api/synapse/:date", async (req, res) => {
     }
 
     const data = await response.json();
+    gameCache.set(date, data);
+
     res.json(data);
   } catch (error) {
     console.error("Error fetching game data:", error);
