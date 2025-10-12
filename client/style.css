@@ -1,0 +1,450 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #1a1a1a;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#app {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+h1 {
+  font-size: 2rem;
+  line-height: 1.1;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+#loading {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+}
+
+/* Dev Mode Banner */
+.dev-mode-banner {
+  background: #2c5aa0;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  text-align: center;
+  font-family: monospace;
+}
+
+/* Dev Mode Delete Button */
+.dev-delete-btn {
+  margin-top: 1.5rem;
+  background-color: #e74c3c !important;
+  color: white !important;
+  font-size: 0.9rem;
+}
+
+.dev-delete-btn:hover {
+  background-color: #c0392b !important;
+}
+
+.dev-delete-btn:disabled {
+  background-color: #95a5a6 !important;
+  cursor: not-allowed;
+}
+
+/* Completed Players Section */
+.completed-players {
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.completed-players h2 {
+  font-size: 1.2rem;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Player Results Grid */
+.player-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+  justify-items: center;
+}
+
+.player-result-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #333;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 160px;
+  transition: transform 0.2s;
+}
+
+.player-result-card:hover {
+  transform: translateY(-2px);
+  background: #3a3a3a;
+}
+
+/* Player Avatar */
+.player-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #444;
+}
+
+.player-avatar-fallback {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  border: 3px solid #444;
+}
+
+.player-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Guess Grid (colored squares) */
+.guess-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 0.5rem;
+}
+
+.guess-row {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.guess-square {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+}
+
+/* Game Over - centered guess grid */
+.game-over .guess-grid {
+  margin: 1.5rem auto 0;
+  max-width: fit-content;
+}
+
+/* Old styles - keep for backward compatibility */
+.player-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: #333;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.player-result:last-child {
+  margin-bottom: 0;
+}
+
+.player-score {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+/* Game Status */
+.game-status {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.mistakes {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.mistake-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.mistake-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #666;
+}
+
+.mistake-dot.used {
+  background: #e74c3c;
+}
+
+/* Solved Categories */
+.solved-categories {
+  margin-bottom: 1rem;
+}
+
+.category {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.category.yellow {
+  background: #f9df6d;
+  color: #000;
+}
+
+.category.green {
+  background: #a0c35a;
+  color: #000;
+}
+
+.category.blue {
+  background: #b0c4ef;
+  color: #000;
+}
+
+.category.purple {
+  background: #ba81c5;
+  color: #000;
+}
+
+.category.unsolved {
+  opacity: 0.4;
+  filter: grayscale(30%);
+}
+
+.category-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.category-words {
+  font-size: 0.95rem;
+}
+
+/* Game Grid */
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.word-button {
+  background: #2a2a2a;
+  border: 2px solid #444;
+  border-radius: 4px;
+  padding: 1.5rem 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  width: 100%;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.word-button:hover {
+  background: #333;
+  border-color: #666;
+}
+
+.word-button.selected {
+  background: #4a4a4a;
+  border-color: #888;
+}
+
+.word-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Controls */
+.game-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+button {
+  border-radius: 20px;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  background-color: #fff;
+  color: #000;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background-color: #e0e0e0;
+}
+
+button:disabled {
+  background-color: #666;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background-color: #444;
+  color: #fff;
+}
+
+button.secondary:hover {
+  background-color: #555;
+}
+
+/* Message */
+.message {
+  text-align: center;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.message.error {
+  background: #e74c3c;
+  color: #fff;
+}
+
+.message.success {
+  background: #27ae60;
+  color: #fff;
+}
+
+.message.info {
+  background: #3498db;
+  color: #fff;
+}
+
+/* Game Over */
+.game-over {
+  text-align: center;
+  background: #2a2a2a;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.game-over h2 {
+  margin-top: 0;
+}
+
+.final-score {
+  font-size: 1.5rem;
+  margin: 1rem 0;
+}
+
+/* Dev mode helpers */
+.dev-hint {
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(44, 90, 160, 0.1);
+  border-radius: 4px;
+}
+
+/* Optional: Add subtle row indicators in dev mode */
+.game-grid.dev-mode .word-button:nth-child(n + 1):nth-child(-n + 4) {
+  border-left: 3px solid rgba(249, 223, 109, 0.3);
+}
+
+.game-grid.dev-mode .word-button:nth-child(n + 5):nth-child(-n + 8) {
+  border-left: 3px solid rgba(160, 195, 90, 0.3);
+}
+
+.game-grid.dev-mode .word-button:nth-child(n + 9):nth-child(-n + 12) {
+  border-left: 3px solid rgba(176, 196, 239, 0.3);
+}
+
+.game-grid.dev-mode .word-button:nth-child(n + 13):nth-child(-n + 16) {
+  border-left: 3px solid rgba(186, 129, 197, 0.3);
+}
+
+@media (max-width: 600px) {
+  #app {
+    padding: 0.5rem;
+  }
+
+  .game-grid {
+    gap: 0.3rem;
+  }
+
+  .word-button {
+    padding: 0.75rem 0.25rem;
+    font-size: 0.75rem;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .word-button {
+    padding: 0.5rem 0.2rem;
+    font-size: 0.65rem;
+    min-height: 50px;
+  }
+}

@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env.local
+.vscode
+*.md
+client/node_modules
+server/node_modules
+client/dist
+.DS_Store
+Thumbs.db

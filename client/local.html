@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Synapse - Local Dev Mode</title>
+    <style>
+      .dev-info {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(44, 90, 160, 0.9);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 12px;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+      .dev-info h4 {
+        margin: 0 0 5px 0;
+        font-size: 14px;
+      }
+      .dev-info p {
+        margin: 3px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Dev mode indicator -->
+    <div class="dev-info">
+      <h4>🔧 Local Dev Mode</h4>
+      <p>Running without Discord</p>
+      <p>Mock data is being used</p>
+    </div>
+
+    <div id="app">
+      <div id="loading">Loading game...</div>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

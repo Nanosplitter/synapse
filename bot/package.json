@@ -1,0 +1,26 @@
+{
+  "name": "synapse-discord-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for Synapse game activity",
+  "main": "bot.js",
+  "type": "module",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "node --watch bot.js",
+    "register": "node register-commands.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "synapse"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.80",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.1",
+    "mysql2": "^3.15.1",
+    "node-fetch": "^3.3.2"
+  }
+}

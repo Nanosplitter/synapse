@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  synapse-game:
+    build:
+      context: .
+      args:
+        VITE_DISCORD_CLIENT_ID: ${VITE_DISCORD_CLIENT_ID}
+        DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+    container_name: synapse-game
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - MYSQL_CONNECTION_STRING=${MYSQL_CONNECTION_STRING}
+      - VITE_DISCORD_CLIENT_ID=${VITE_DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+    env_file:
+      - .env
