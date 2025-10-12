@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import { createPlayButton, formatPlayerMessage, updateSessionMessage, createGameAttachment } from "./discord-utils.js";
+import { trackSessionCompletion } from "./recap.js";
 
 export async function checkSessionUpdates(client, activeSessions) {
   if (activeSessions.size === 0) return;
@@ -67,6 +68,16 @@ export async function checkSessionUpdates(client, activeSessions) {
           console.log(`✅ Message updated!`);
 
           if (allComplete && session.players.length > 0) {
+            trackSessionCompletion(
+              sessionId,
+              session.guildId,
+              session.channelId,
+              session.messageId,
+              session.players,
+              session.puzzleNumber,
+              session.interaction,
+              session.webhook
+            );
             activeSessions.delete(sessionId);
             console.log(`✓ Game session ${sessionId} completed - all players done`);
           }
@@ -82,6 +93,16 @@ export async function checkSessionUpdates(client, activeSessions) {
         });
 
         if (allComplete) {
+          trackSessionCompletion(
+            sessionId,
+            session.guildId,
+            session.channelId,
+            session.messageId,
+            session.players,
+            session.puzzleNumber,
+            session.interaction,
+            session.webhook
+          );
           activeSessions.delete(sessionId);
           console.log(`✓ Game session ${sessionId} completed - removing from active sessions`);
         }

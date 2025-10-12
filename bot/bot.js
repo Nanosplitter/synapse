@@ -9,6 +9,7 @@ import { hasActivePlayer, handlePlayerJoin } from "./lib/player-handler.js";
 import { launchActivity } from "./lib/discord-utils.js";
 import { hasPlayerCompletedGame } from "./lib/server-api.js";
 import { getTodayDate } from "./lib/utils.js";
+import { checkForRecaps } from "./lib/recap.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -38,6 +39,9 @@ client.on("ready", async () => {
 
   setInterval(() => checkSessionUpdates(client, activeSessions), 5000);
   console.log("✓ Started polling for session updates");
+
+  setInterval(() => checkForRecaps(client, pool), 30000);
+  console.log("✓ Started polling for session recaps");
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -49,6 +53,11 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   if (interaction.isButton()) {
+    if (interaction.customId.startsWith("start_new_session_")) {
+      await startGameSession(interaction, client, activeSessions);
+      return;
+    }
+
     if (interaction.customId.startsWith("launch_activity_")) {
       try {
         const sessionId = interaction.customId.replace("launch_activity_", "");

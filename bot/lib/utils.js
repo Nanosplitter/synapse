@@ -9,10 +9,16 @@ export function getTodayDate() {
   return new Date().toISOString().split("T")[0];
 }
 
-export function getPuzzleNumber() {
+export function addDays(dateString, days) {
+  const date = new Date(dateString);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split("T")[0];
+}
+
+export function getPuzzleNumber(dateString = null) {
   const firstPuzzleDate = new Date("2023-06-12");
-  const today = new Date();
-  const diffTime = Math.abs(today - firstPuzzleDate);
+  const targetDate = dateString ? new Date(dateString) : new Date();
+  const diffTime = Math.abs(targetDate - firstPuzzleDate);
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 }
