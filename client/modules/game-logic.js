@@ -185,7 +185,7 @@ async function saveGameResult() {
   try {
     await apiSaveGameResult(guildId, currentDate, {
       userId: currentUser.id,
-      username: currentUser.username,
+      username: currentUser.global_name || currentUser.username,
       avatar: currentUser.avatar,
       score: gameState.solvedCategories.length,
       mistakes: gameState.mistakes,

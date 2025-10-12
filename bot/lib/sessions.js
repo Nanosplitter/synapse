@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { getPuzzleNumber, getTodayDate } from "./utils.js";
-import { createGameAttachment, createPlayButton, launchActivity } from "./discord-utils.js";
+import { createGameAttachment, createPlayButton, launchActivity, getDisplayName } from "./discord-utils.js";
 import { notifySessionStart, notifyPlayerJoin, fetchSession } from "./server-api.js";
 
 export async function startGameSession(interaction, client, activeSessions) {
@@ -82,7 +82,7 @@ export async function startGameSession(interaction, client, activeSessions) {
 export async function createReplySession(interaction, originalSession, client, activeSessions) {
   try {
     const userId = interaction.user.id;
-    const username = interaction.user.username;
+    const username = getDisplayName(interaction);
     const avatarUrl = interaction.user.displayAvatarURL({ format: "png" });
     const puzzleNumber = originalSession.puzzleNumber;
 
@@ -157,7 +157,7 @@ export async function createReplySession(interaction, originalSession, client, a
   }
 }
 
-export async function restoreSessionFromServer(sessionId, activeSessions) {
+export async function restoreSessionFromServer(sessionId, activeSessions, client) {
   console.log(`⚠️ Session ${sessionId} not in cache, fetching from server...`);
 
   const serverSession = await fetchSession(sessionId);

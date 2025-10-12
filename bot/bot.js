@@ -6,7 +6,7 @@ import { initializeDatabase, checkForCompletedGames, postDailyPrompt } from "./l
 import { startGameSession, createReplySession, restoreSessionFromServer } from "./lib/sessions.js";
 import { checkSessionUpdates } from "./lib/session-updates.js";
 import { hasActivePlayer, handlePlayerJoin } from "./lib/player-handler.js";
-import { launchActivity } from "./lib/discord-utils.js";
+import { launchActivity, getDisplayName } from "./lib/discord-utils.js";
 import { hasPlayerCompletedGame } from "./lib/server-api.js";
 import { getTodayDate } from "./lib/utils.js";
 import { checkForRecaps } from "./lib/recap.js";
@@ -17,7 +17,12 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, "../.env") });
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ],
   partials: []
 });
 
@@ -64,12 +69,12 @@ client.on("interactionCreate", async (interaction) => {
         let session = activeSessions.get(sessionId);
 
         if (!session) {
-          session = await restoreSessionFromServer(sessionId, activeSessions);
+          session = await restoreSessionFromServer(sessionId, activeSessions, client);
         }
 
         if (session) {
           const userId = interaction.user.id;
-          const username = interaction.user.username;
+          const username = getDisplayName(interaction);
           const guildId = session.guildId || "dm";
           const today = getTodayDate();
 
@@ -101,7 +106,7 @@ client.on("interactionCreate", async (interaction) => {
         }
 
         await launchActivity(client, interaction);
-        console.log(`🚀 Activity launched silently for ${interaction.user.username}`);
+        console.log(`🚀 Activity launched silently for ${getDisplayName(interaction)}`);
       } catch (error) {
         console.error("Error launching activity:", error);
         await interaction.deferUpdate();

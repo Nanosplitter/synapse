@@ -1,6 +1,16 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, Routes } from "discord.js";
 import { generateGameImage } from "../image-generator.js";
 
+/**
+ * Get display name for a user with proper priority:
+ * 1. Server nickname (if set)
+ * 2. Global display name
+ * 3. Username (fallback)
+ */
+export function getDisplayName(interaction) {
+  return interaction.member?.nick || interaction.user.globalName || interaction.user.username;
+}
+
 export function createPlayButton(sessionId) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId(`launch_activity_${sessionId}`).setLabel("Play now!").setStyle(ButtonStyle.Primary)

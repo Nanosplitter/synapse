@@ -1,6 +1,6 @@
 import { getTodayDate } from "./utils.js";
 import { notifyPlayerJoin } from "./server-api.js";
-import { createGameAttachment, createPlayButton, formatPlayerMessage, updateSessionMessage } from "./discord-utils.js";
+import { createGameAttachment, createPlayButton, formatPlayerMessage, updateSessionMessage, getDisplayName } from "./discord-utils.js";
 
 export function isPlayerGameComplete(player) {
   const guessHistory = player.guessHistory || [];
@@ -18,7 +18,7 @@ export function hasActivePlayer(session) {
 
 export async function handlePlayerJoin(client, interaction, session) {
   const userId = interaction.user.id;
-  const username = interaction.user.username;
+  const username = getDisplayName(interaction);
   const avatarUrl = interaction.user.displayAvatarURL({ format: "png" });
 
   session.players.push({
