@@ -60,16 +60,16 @@ function generateEmptyImage(puzzleNumber) {
 
   // Header
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 24px Arial";
+  ctx.font = "bold 24px 'Liberation Sans', Arial, sans-serif";
   const title = puzzleNumber ? `Synapse #${puzzleNumber}` : "Synapse";
   ctx.fillText(title, 20, 40);
 
   // Message
-  ctx.font = "18px Arial";
+  ctx.font = "18px 'Liberation Sans', Arial, sans-serif";
   ctx.fillStyle = "#999999";
   ctx.fillText("Waiting for players...", 20, 100);
-  ctx.font = "14px Arial";
-  ctx.fillText("Click 'Play' to join!", 20, 130);
+  ctx.font = "14px 'Liberation Sans', Arial, sans-serif";
+  ctx.fillText("Click 'Play now!' to join!", 20, 130);
 
   return canvas.toBuffer("image/png");
 }
@@ -219,7 +219,7 @@ async function drawPlayerSection(ctx, player, x, y, width) {
 
   // Draw username centered below avatar
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 14px Arial";
+  ctx.font = "bold 14px 'Liberation Sans', Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(username, x + width / 2, y - 10);
   ctx.textAlign = "left"; // Reset alignment
