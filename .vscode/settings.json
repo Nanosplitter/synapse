@@ -1,3 +1,14 @@
 {
-  "conventionalCommits.scopes": ["env", "bot", "client", "server", "docs", "config", "tests", "ci", "dependencies"]
+  "conventionalCommits.scopes": [
+    "env",
+    "bot",
+    "client",
+    "server",
+    "docs",
+    "config",
+    "tests",
+    "ci",
+    "dependencies",
+    "vscode"
+  ]
 }
