@@ -43,9 +43,9 @@ router.post("/api/sessions/:userSessionId/update", async (req, res) => {
   res.json({ success: true, ...result });
 });
 
-router.get("/api/sessions/lookup/:channelId/:userId", async (req, res) => {
-  const { channelId, userId } = req.params;
-  const result = lookupSession(channelId, userId);
+router.get("/api/sessions/lookup/:channelId/:userId/:date", async (req, res) => {
+  const { channelId, userId, date } = req.params;
+  const result = lookupSession(channelId, userId, date);
   res.json(result);
 });
 

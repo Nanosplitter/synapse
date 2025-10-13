@@ -31,6 +31,11 @@ export function joinSession(messageSessionId, userId, username, avatarUrl, guild
 
   userToMessageSession[userSessionId] = messageSessionId;
 
+  if (!activeSessions[messageSessionId].date) {
+    activeSessions[messageSessionId].date = date;
+    console.log(`📅 Set session date to ${date}`);
+  }
+
   if (!activeSessions[messageSessionId].players[userId]) {
     activeSessions[messageSessionId].players[userId] = {
       username,
@@ -78,12 +83,18 @@ export function updateSession(userSessionId, guessHistory) {
   }
 }
 
-export function lookupSession(channelId, userId) {
-  console.log(`🔍 Looking up active session for user ${userId} in channel ${channelId}`);
+export function lookupSession(channelId, userId, date) {
+  console.log(`🔍 Looking up active session for user ${userId} in channel ${channelId} on date ${date}`);
 
   for (const [sessionId, session] of Object.entries(activeSessions)) {
     if (session.channelId === channelId && session.players[userId]) {
-      console.log(`✅ Found active session ${sessionId} for user ${userId}`);
+      // Check if the session is for the correct date
+      if (session.date && session.date !== date) {
+        console.log(`⏭️ Skipping session ${sessionId} - wrong date (${session.date} !== ${date})`);
+        continue;
+      }
+
+      console.log(`✅ Found active session ${sessionId} for user ${userId} on date ${date}`);
 
       const userProgress = session.players[userId];
       return {
@@ -96,7 +107,7 @@ export function lookupSession(channelId, userId) {
     }
   }
 
-  console.log(`❌ No active session found for user ${userId} in channel ${channelId}`);
+  console.log(`❌ No active session found for user ${userId} in channel ${channelId} on date ${date}`);
   return { found: false };
 }
 

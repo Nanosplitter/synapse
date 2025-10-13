@@ -54,7 +54,7 @@ async function initializeGame() {
     console.log("Server game state:", serverGameState);
     console.log("Current user:", currentUser);
 
-    const sessionLookup = await lookupUserSession(channelId, currentUser.id);
+    const sessionLookup = await lookupUserSession(channelId, currentUser.id, gameDate);
 
     const sessionId = `${guildId}_${currentUser.id}_${gameDate}`;
 

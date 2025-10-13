@@ -134,11 +134,12 @@ export async function updateSession(sessionId, guessHistory) {
  * Look up user's active session in a channel
  * @param {string} channelId - Discord channel ID
  * @param {string} userId - Discord user ID
+ * @param {string} date - Date in YYYY-MM-DD format
  * @returns {Promise<Object>} - Session lookup result
  */
-export async function lookupUserSession(channelId, userId) {
+export async function lookupUserSession(channelId, userId, date) {
   try {
-    const response = await fetch(`/api/sessions/lookup/${channelId}/${userId}`);
+    const response = await fetch(`/api/sessions/lookup/${channelId}/${userId}/${date}`);
 
     if (!response.ok) {
       throw new Error(`Session lookup failed with status ${response.status}`);
