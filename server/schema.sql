@@ -47,7 +47,7 @@ ORDER BY guild_id, game_date, rank;
 
 -- Optional: Create a view for player statistics
 CREATE OR REPLACE VIEW player_stats AS
-SELECT 
+SELECT
   user_id,
   username,
   COUNT(*) as games_played,
@@ -56,3 +56,21 @@ SELECT
   AVG(mistakes) as avg_mistakes
 FROM game_results
 GROUP BY user_id, username;
+
+-- Table to track pending recaps
+CREATE TABLE IF NOT EXISTS pending_recaps (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  channel_id VARCHAR(255) NOT NULL COMMENT 'Discord channel ID',
+  guild_id VARCHAR(255) NOT NULL COMMENT 'Discord server/guild ID',
+  game_date DATE NOT NULL COMMENT 'Date of the game to recap',
+  puzzle_number INT NOT NULL COMMENT 'Puzzle number for that date',
+  recap_posted BOOLEAN DEFAULT FALSE COMMENT 'Whether the recap has been posted',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'When this recap was queued',
+  posted_at TIMESTAMP NULL DEFAULT NULL COMMENT 'When the recap was posted',
+
+  INDEX idx_channel_date (channel_id, game_date),
+  INDEX idx_pending (recap_posted, game_date),
+
+  UNIQUE KEY unique_channel_recap (channel_id, game_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Tracks pending daily recaps for each channel';

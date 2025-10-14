@@ -12,6 +12,23 @@ export async function initializeDatabase(connectionString) {
     const pool = mysql.createPool(connectionString);
     const connection = await pool.getConnection();
     console.log("✓ MySQL connected successfully!");
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS pending_recaps (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        channel_id VARCHAR(255) NOT NULL,
+        guild_id VARCHAR(255) NOT NULL,
+        game_date DATE NOT NULL,
+        puzzle_number INT NOT NULL,
+        recap_posted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        posted_at TIMESTAMP NULL DEFAULT NULL,
+        INDEX idx_channel_date (channel_id, game_date),
+        INDEX idx_pending (recap_posted, game_date),
+        UNIQUE KEY unique_channel_recap (channel_id, game_date)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     connection.release();
     return pool;
   } catch (error) {

@@ -5,7 +5,7 @@ import { generateGameImage } from "../image-generator.js";
 const channelCompletions = new Map();
 const postedRecaps = new Set();
 
-export function trackSessionCompletion(sessionId, guildId, channelId, messageId, players, puzzleNumber, interaction, webhook) {
+export async function trackSessionCompletion(sessionId, guildId, channelId, messageId, players, puzzleNumber, interaction, webhook, pool) {
   const gameDate = getTodayDate();
   const key = `${channelId}_${gameDate}`;
 
@@ -19,12 +19,24 @@ export function trackSessionCompletion(sessionId, guildId, channelId, messageId,
     lastWebhook: webhook
   });
 
+  if (pool) {
+    try {
+      await pool.query(
+        `INSERT INTO pending_recaps (channel_id, guild_id, game_date, puzzle_number, recap_posted)
+         VALUES (?, ?, ?, ?, FALSE)
+         ON DUPLICATE KEY UPDATE puzzle_number = VALUES(puzzle_number)`,
+        [channelId, guildId, gameDate, puzzleNumber]
+      );
+      console.log(`📝 Tracked completion in DB for channel ${channelId} on ${gameDate}`);
+    } catch (error) {
+      console.error(`⚠️ Failed to track completion in DB:`, error.message);
+    }
+  }
+
   console.log(`📝 Tracked completion in channel ${channelId} for date ${gameDate}`);
 }
 
 export async function checkForRecaps(client, pool) {
-  if (channelCompletions.size === 0) return;
-
   const recapHour = parseInt(process.env.RECAP_HOUR || "9", 10);
   const recapTimeZoneOffset = parseInt(process.env.RECAP_TIMEZONE_OFFSET || "-5", 10);
 
@@ -36,6 +48,58 @@ export async function checkForRecaps(client, pool) {
 
   const today = getTodayDate();
   const yesterday = addDays(today, -1);
+
+  let pendingRecaps = [];
+
+  if (pool) {
+    try {
+      const [rows] = await pool.query(
+        `SELECT channel_id, guild_id, game_date, puzzle_number
+         FROM pending_recaps
+         WHERE game_date = ? AND recap_posted = FALSE`,
+        [yesterday]
+      );
+      pendingRecaps = rows;
+    } catch (error) {
+      console.error(`⚠️ Failed to fetch pending recaps from DB:`, error.message);
+    }
+  }
+
+  if (pendingRecaps.length === 0 && channelCompletions.size === 0) return;
+
+  for (const pending of pendingRecaps) {
+    const channelId = pending.channel_id;
+    const recapKey = `${channelId}_${yesterday}`;
+
+    if (postedRecaps.has(recapKey)) continue;
+
+    const completion = {
+      channelId: pending.channel_id,
+      guildId: pending.guild_id,
+      gameDate: pending.game_date,
+      puzzleNumber: pending.puzzle_number,
+      lastMessageId: null,
+      lastInteraction: null,
+      lastWebhook: null
+    };
+
+    console.log(`📊 Posting recap for channel ${channelId}, date ${yesterday}`);
+
+    try {
+      await postRecap(client, completion, pool, yesterday);
+      postedRecaps.add(recapKey);
+
+      if (pool) {
+        await pool.query(
+          `UPDATE pending_recaps SET recap_posted = TRUE, posted_at = NOW()
+           WHERE channel_id = ? AND game_date = ?`,
+          [channelId, yesterday]
+        );
+      }
+    } catch (error) {
+      console.error(`❌ Error posting recap for ${recapKey}:`, error);
+    }
+  }
 
   const channelsToCheck = new Set();
   for (const [key, completion] of channelCompletions.entries()) {
@@ -59,6 +123,14 @@ export async function checkForRecaps(client, pool) {
     try {
       await postRecap(client, completion, pool, yesterday);
       postedRecaps.add(recapKey);
+
+      if (pool) {
+        await pool.query(
+          `UPDATE pending_recaps SET recap_posted = TRUE, posted_at = NOW()
+           WHERE channel_id = ? AND game_date = ?`,
+          [channelId, yesterday]
+        );
+      }
 
       setTimeout(() => {
         channelCompletions.delete(completionKey);

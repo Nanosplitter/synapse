@@ -6,7 +6,7 @@ const SERVER_URL = process.env.SERVER_URL || "http://localhost:3001";
 
 let wasPolling = false;
 
-export async function checkSessionUpdates(client, activeSessions) {
+export async function checkSessionUpdates(client, activeSessions, pool) {
   const isPolling = activeSessions.size > 0;
 
   if (isPolling && !wasPolling) {
@@ -79,7 +79,7 @@ export async function checkSessionUpdates(client, activeSessions) {
           console.log(`✅ Message updated!`);
 
           if (allComplete && session.players.length > 0) {
-            trackSessionCompletion(
+            await trackSessionCompletion(
               sessionId,
               session.guildId,
               session.channelId,
@@ -87,7 +87,8 @@ export async function checkSessionUpdates(client, activeSessions) {
               session.players,
               session.puzzleNumber,
               session.interaction,
-              session.webhook
+              session.webhook,
+              pool
             );
             activeSessions.delete(sessionId);
             console.log(`✓ Game session ${sessionId} completed - all players done`);
@@ -104,7 +105,7 @@ export async function checkSessionUpdates(client, activeSessions) {
         });
 
         if (allComplete) {
-          trackSessionCompletion(
+          await trackSessionCompletion(
             sessionId,
             session.guildId,
             session.channelId,
@@ -112,7 +113,8 @@ export async function checkSessionUpdates(client, activeSessions) {
             session.players,
             session.puzzleNumber,
             session.interaction,
-            session.webhook
+            session.webhook,
+            pool
           );
           activeSessions.delete(sessionId);
           console.log(`✓ Game session ${sessionId} completed - removing from active sessions`);

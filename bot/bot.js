@@ -42,7 +42,7 @@ client.on("ready", async () => {
   setInterval(() => checkForCompletedGames(client, pool, postedGames), 30000);
   console.log("✓ Started polling for completed games");
 
-  setInterval(() => checkSessionUpdates(client, activeSessions), 5000);
+  setInterval(() => checkSessionUpdates(client, activeSessions, pool), 5000);
   console.log("✓ Started polling for session updates");
 
   setInterval(() => checkForRecaps(client, pool), 30000);
