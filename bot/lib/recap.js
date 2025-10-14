@@ -2,63 +2,77 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } from 
 import { getTodayDate, getPuzzleNumber, addDays } from "./utils.js";
 import { generateGameImage } from "../image-generator.js";
 
-const completedSessions = new Map();
+const channelCompletions = new Map();
+const postedRecaps = new Set();
 
 export function trackSessionCompletion(sessionId, guildId, channelId, messageId, players, puzzleNumber, interaction, webhook) {
-  const completionTime = Date.now();
   const gameDate = getTodayDate();
+  const key = `${channelId}_${gameDate}`;
 
-  completedSessions.set(sessionId, {
-    sessionId,
-    guildId,
+  channelCompletions.set(key, {
     channelId,
-    messageId,
-    players,
-    puzzleNumber,
-    interaction,
-    webhook,
+    guildId,
     gameDate,
-    completedAt: completionTime,
-    recapPosted: false
+    puzzleNumber,
+    lastMessageId: messageId,
+    lastInteraction: interaction,
+    lastWebhook: webhook
   });
 
-  console.log(`📝 Tracked session ${sessionId} completion at ${new Date(completionTime).toISOString()}`);
+  console.log(`📝 Tracked completion in channel ${channelId} for date ${gameDate}`);
 }
 
 export async function checkForRecaps(client, pool) {
-  if (completedSessions.size === 0) return;
+  if (channelCompletions.size === 0) return;
 
-  const recapDelayHours = parseFloat(process.env.RECAP_DELAY_HOURS || "24");
-  const recapDelayMs = recapDelayHours * 60 * 60 * 1000;
-  const now = Date.now();
+  const recapHour = parseInt(process.env.RECAP_HOUR || "9", 10);
+  const recapTimeZoneOffset = parseInt(process.env.RECAP_TIMEZONE_OFFSET || "-5", 10);
 
-  for (const [sessionId, session] of completedSessions.entries()) {
-    if (session.recapPosted) continue;
+  const now = new Date();
+  const utcHour = now.getUTCHours();
+  const localHour = (utcHour + recapTimeZoneOffset + 24) % 24;
 
-    const timeSinceCompletion = now - session.completedAt;
+  if (localHour < recapHour) return;
 
-    if (timeSinceCompletion >= recapDelayMs) {
-      console.log(`📊 Posting recap for session ${sessionId} (${recapDelayHours} hours elapsed)`);
+  const today = getTodayDate();
+  const yesterday = addDays(today, -1);
 
-      try {
-        await postRecap(client, session, pool);
-        session.recapPosted = true;
+  const channelsToCheck = new Set();
+  for (const [key, completion] of channelCompletions.entries()) {
+    if (completion.gameDate === yesterday) {
+      channelsToCheck.add(completion.channelId);
+    }
+  }
 
-        setTimeout(() => {
-          completedSessions.delete(sessionId);
-          console.log(`🗑️ Removed session ${sessionId} from recap tracking`);
-        }, 60000);
-      } catch (error) {
-        console.error(`❌ Error posting recap for session ${sessionId}:`, error);
-      }
+  for (const channelId of channelsToCheck) {
+    const recapKey = `${channelId}_${yesterday}`;
+
+    if (postedRecaps.has(recapKey)) continue;
+
+    const completionKey = `${channelId}_${yesterday}`;
+    const completion = channelCompletions.get(completionKey);
+
+    if (!completion) continue;
+
+    console.log(`📊 Posting recap for channel ${channelId}, date ${yesterday}`);
+
+    try {
+      await postRecap(client, completion, pool, yesterday);
+      postedRecaps.add(recapKey);
+
+      setTimeout(() => {
+        channelCompletions.delete(completionKey);
+        console.log(`🗑️ Removed completion tracking for ${recapKey}`);
+      }, 60000);
+    } catch (error) {
+      console.error(`❌ Error posting recap for ${recapKey}:`, error);
     }
   }
 }
 
-async function postRecap(client, session, pool) {
+async function postRecap(client, completion, pool, gameDate) {
   try {
-    const gameDate = session.gameDate;
-    const puzzleNumber = session.puzzleNumber;
+    const puzzleNumber = getPuzzleNumber(gameDate);
 
     let allResults = [];
     if (pool) {
@@ -67,7 +81,7 @@ async function postRecap(client, session, pool) {
          FROM game_results
          WHERE guild_id = ? AND game_date = ?
          ORDER BY completed_at ASC`,
-        [session.guildId, gameDate]
+        [completion.guildId, gameDate]
       );
       allResults = rows;
     }
@@ -95,53 +109,49 @@ async function postRecap(client, session, pool) {
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(`start_new_session_${session.channelId}`)
+        .setCustomId(`start_new_session_${completion.channelId}`)
         .setLabel("Play now!")
         .setStyle(ButtonStyle.Primary)
     );
 
-    if (session.interaction) {
+    if (completion.lastInteraction) {
       try {
-        await session.interaction.followUp({
+        await completion.lastInteraction.followUp({
           content: messageText,
           files: [attachment],
           components: [row]
         });
-        console.log(`✅ Posted recap for session ${session.sessionId} via interaction`);
+        console.log(`✅ Posted recap for ${completion.channelId} on ${gameDate} via interaction`);
         return;
       } catch (error) {
         console.warn(`⚠️ Interaction expired, falling back to guild channel:`, error.message);
       }
     }
 
-    if (session.webhook) {
+    if (completion.lastWebhook) {
       try {
-        await session.webhook.send({
+        await completion.lastWebhook.send({
           content: messageText,
           files: [attachment],
           components: [row]
         });
-        console.log(`✅ Posted recap for session ${session.sessionId} via webhook`);
+        console.log(`✅ Posted recap for ${completion.channelId} on ${gameDate} via webhook`);
         return;
       } catch (error) {
         console.warn(`⚠️ Webhook failed, falling back to guild channel:`, error.message);
       }
     }
 
-    if (session.guildId && session.guildId !== "dm") {
-      const guild = client.guilds.cache.get(session.guildId);
+    if (completion.guildId && completion.guildId !== "dm") {
+      const guild = client.guilds.cache.get(completion.guildId);
       if (!guild) {
-        console.warn(`❌ Guild ${session.guildId} not found for fallback`);
+        console.warn(`❌ Guild ${completion.guildId} not found`);
         return;
       }
 
-      let channel = guild.channels.cache.find((ch) => ch.name === "synapse" && ch.isTextBased());
+      const channel = guild.channels.cache.get(completion.channelId);
       if (!channel) {
-        channel = guild.channels.cache.find((ch) => ch.isTextBased());
-      }
-
-      if (!channel) {
-        console.warn(`❌ No text channel found in guild ${session.guildId}`);
+        console.warn(`❌ Channel ${completion.channelId} not found in guild ${completion.guildId}`);
         return;
       }
 
@@ -151,11 +161,11 @@ async function postRecap(client, session, pool) {
         components: [row]
       });
 
-      console.log(`✅ Posted recap for session ${session.sessionId} to guild channel ${channel.name}`);
+      console.log(`✅ Posted recap for ${completion.channelId} on ${gameDate}`);
       return;
     }
 
-    console.warn(`❌ Unable to post recap for session ${session.sessionId}`);
+    console.warn(`❌ Unable to post recap for ${completion.channelId} on ${gameDate}`);
   } catch (error) {
     console.error("Error posting recap:", error);
     throw error;
