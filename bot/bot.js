@@ -8,7 +8,7 @@ import { checkSessionUpdates } from "./lib/session-updates.js";
 import { hasActivePlayer, handlePlayerJoin } from "./lib/player-handler.js";
 import { launchActivity, getDisplayName } from "./lib/discord-utils.js";
 import { hasPlayerCompletedGame } from "./lib/server-api.js";
-import { getTodayDate } from "./lib/utils.js";
+import { getTodayDate, addDays } from "./lib/utils.js";
 import { checkForRecaps } from "./lib/recap.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -53,8 +53,46 @@ client.on("interactionCreate", async (interaction) => {
   if (interaction.isChatInputCommand()) {
     if (interaction.commandName === "synapse") {
       await startGameSession(interaction, client, activeSessions);
+      return;
     }
-    return;
+
+    if (interaction.commandName === "recap") {
+      try {
+        const guildId = interaction.guildId;
+
+        if (!guildId) {
+          await interaction.reply({ content: "This command can only be used in a server!", ephemeral: true });
+          return;
+        }
+
+        await interaction.deferReply();
+
+        const today = getTodayDate();
+        const yesterday = addDays(today, 0);
+
+        console.log(`📊 Manual recap requested for guild ${guildId} on ${yesterday}`);
+
+        const { buildRecapResponse } = await import("./lib/recap.js");
+        const recapData = await buildRecapResponse(guildId, yesterday, pool);
+
+        if (!recapData) {
+          await interaction.editReply(`No completed games found for ${yesterday}.`);
+          return;
+        }
+
+        await interaction.editReply({
+          content: recapData.message,
+          files: recapData.files,
+          components: recapData.components
+        });
+
+        console.log(`✅ Posted recap for ${yesterday}`);
+      } catch (error) {
+        console.error("Error handling recap command:", error);
+        await interaction.editReply("An error occurred while trying to post the recap.");
+      }
+      return;
+    }
   }
 
   if (interaction.isButton()) {

@@ -18,7 +18,7 @@ export const GAME_CONFIG = {
 };
 
 export const DATE_CONFIG = {
-  current: new Date().toISOString().split("T")[0],
+  current: new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }),
   fallback: "2024-10-02"
 };
 

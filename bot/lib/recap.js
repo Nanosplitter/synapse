@@ -5,6 +5,72 @@ import { generateGameImage } from "../image-generator.js";
 const channelCompletions = new Map();
 const postedRecaps = new Set();
 
+/**
+ * Build recap response data (message, files, components) for a given guild and date
+ * @param {string} guildId - Guild ID
+ * @param {string} gameDate - Date to create recap for (YYYY-MM-DD)
+ * @param {*} pool - Database pool
+ * @returns {Promise<Object|null>} - Recap data or null if no games found
+ */
+export async function buildRecapResponse(guildId, gameDate, pool) {
+  try {
+    const puzzleNumber = getPuzzleNumber(gameDate);
+
+    let allResults = [];
+    if (pool) {
+      const [rows] = await pool.query(
+        `SELECT user_id, username, avatar, score, mistakes, guess_history, completed_at
+         FROM game_results
+         WHERE guild_id = ? AND game_date = ?
+         ORDER BY completed_at ASC`,
+        [guildId, gameDate]
+      );
+      allResults = rows;
+    }
+
+    if (allResults.length === 0) {
+      return null;
+    }
+
+    const sortedResults = [...allResults].sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (a.mistakes !== b.mistakes) return a.mistakes - b.mistakes;
+
+      const aGuessHistory = typeof a.guess_history === 'string' ? JSON.parse(a.guess_history) : a.guess_history;
+      const bGuessHistory = typeof b.guess_history === 'string' ? JSON.parse(b.guess_history) : b.guess_history;
+
+      return calculateTiebreakerScore(bGuessHistory) - calculateTiebreakerScore(aGuessHistory);
+    });
+
+    const players = sortedResults.map(result => ({
+      username: result.username,
+      avatarUrl: result.avatar ? `https://cdn.discordapp.com/avatars/${result.user_id}/${result.avatar}.png` : null,
+      guessHistory: typeof result.guess_history === 'string' ? JSON.parse(result.guess_history) : result.guess_history
+    }));
+
+    const imageBuffer = await generateGameImage({ players, puzzleNumber });
+    const attachment = new AttachmentBuilder(imageBuffer, { name: "synapse-recap.png" });
+
+    const messageText = buildRecapMessage(sortedResults, puzzleNumber);
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`start_new_session_any`)
+        .setLabel("Play now!")
+        .setStyle(ButtonStyle.Primary)
+    );
+
+    return {
+      message: messageText,
+      files: [attachment],
+      components: [row]
+    };
+  } catch (error) {
+    console.error("Error building recap response:", error);
+    throw error;
+  }
+}
+
 export async function trackSessionCompletion(sessionId, guildId, channelId, messageId, players, puzzleNumber, interaction, webhook, pool) {
   const gameDate = getTodayDate();
   const key = `${channelId}_${gameDate}`;
@@ -144,41 +210,14 @@ export async function checkForRecaps(client, pool) {
 
 async function postRecap(client, completion, pool, gameDate) {
   try {
-    const puzzleNumber = getPuzzleNumber(gameDate);
+    const recapData = await buildRecapResponse(completion.guildId, gameDate, pool);
 
-    let allResults = [];
-    if (pool) {
-      const [rows] = await pool.query(
-        `SELECT user_id, username, avatar, score, mistakes, guess_history, completed_at
-         FROM game_results
-         WHERE guild_id = ? AND game_date = ?
-         ORDER BY completed_at ASC`,
-        [completion.guildId, gameDate]
-      );
-      allResults = rows;
+    if (!recapData) {
+      console.warn(`No completed games found for ${completion.guildId} on ${gameDate}`);
+      return;
     }
 
-    const sortedResults = [...allResults].sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      if (a.mistakes !== b.mistakes) return a.mistakes - b.mistakes;
-
-      const aGuessHistory = typeof a.guess_history === 'string' ? JSON.parse(a.guess_history) : a.guess_history;
-      const bGuessHistory = typeof b.guess_history === 'string' ? JSON.parse(b.guess_history) : b.guess_history;
-
-      return calculateTiebreakerScore(bGuessHistory) - calculateTiebreakerScore(aGuessHistory);
-    });
-
-    const players = sortedResults.map(result => ({
-      username: result.username,
-      avatarUrl: result.avatar ? `https://cdn.discordapp.com/avatars/${result.user_id}/${result.avatar}.png` : null,
-      guessHistory: typeof result.guess_history === 'string' ? JSON.parse(result.guess_history) : result.guess_history
-    }));
-
-    const imageBuffer = await generateGameImage({ players, puzzleNumber });
-    const attachment = new AttachmentBuilder(imageBuffer, { name: "synapse-recap.png" });
-
-    const messageText = buildRecapMessage(sortedResults, puzzleNumber);
-
+    // Update the button to be channel-specific for automatic recaps
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`start_new_session_${completion.channelId}`)
@@ -186,13 +225,15 @@ async function postRecap(client, completion, pool, gameDate) {
         .setStyle(ButtonStyle.Primary)
     );
 
+    const messageOptions = {
+      content: recapData.message,
+      files: recapData.files,
+      components: [row]
+    };
+
     if (completion.lastInteraction) {
       try {
-        await completion.lastInteraction.followUp({
-          content: messageText,
-          files: [attachment],
-          components: [row]
-        });
+        await completion.lastInteraction.followUp(messageOptions);
         console.log(`✅ Posted recap for ${completion.channelId} on ${gameDate} via interaction`);
         return;
       } catch (error) {
@@ -202,11 +243,7 @@ async function postRecap(client, completion, pool, gameDate) {
 
     if (completion.lastWebhook) {
       try {
-        await completion.lastWebhook.send({
-          content: messageText,
-          files: [attachment],
-          components: [row]
-        });
+        await completion.lastWebhook.send(messageOptions);
         console.log(`✅ Posted recap for ${completion.channelId} on ${gameDate} via webhook`);
         return;
       } catch (error) {
@@ -227,12 +264,7 @@ async function postRecap(client, completion, pool, gameDate) {
         return;
       }
 
-      await channel.send({
-        content: messageText,
-        files: [attachment],
-        components: [row]
-      });
-
+      await channel.send(messageOptions);
       console.log(`✅ Posted recap for ${completion.channelId} on ${gameDate}`);
       return;
     }

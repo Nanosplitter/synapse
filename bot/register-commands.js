@@ -14,6 +14,12 @@ const commands = [
     .setDescription("Start playing Synapse and share your progress")
     .setContexts([0, 1, 2]) // 0 = Guild, 1 = Bot DM, 2 = Private Channel
     .setIntegrationTypes([0, 1]) // 0 = Guild Install, 1 = User Install
+    .toJSON(),
+  new SlashCommandBuilder()
+    .setName("recap")
+    .setDescription("Post a recap from yesterday's Synapse game")
+    .setContexts([0]) // 0 = Guild only
+    .setIntegrationTypes([0]) // 0 = Guild Install only
     .toJSON()
 ];
 
