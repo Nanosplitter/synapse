@@ -68,7 +68,7 @@ client.on("interactionCreate", async (interaction) => {
         await interaction.deferReply();
 
         const today = getTodayDate();
-        const yesterday = addDays(today, 0);
+        const yesterday = addDays(today, -1);
 
         console.log(`📊 Manual recap requested for guild ${guildId} on ${yesterday}`);
 
