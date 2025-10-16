@@ -19,7 +19,6 @@ export async function initializeDatabase(connectionString) {
         channel_id VARCHAR(255) NOT NULL,
         guild_id VARCHAR(255) NOT NULL,
         game_date DATE NOT NULL,
-        puzzle_number INT NOT NULL,
         recap_posted BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         posted_at TIMESTAMP NULL DEFAULT NULL,
@@ -48,7 +47,6 @@ export async function initializeDatabase(connectionString) {
         channel_id VARCHAR(255) NOT NULL,
         message_id VARCHAR(255) NOT NULL,
         game_date DATE NOT NULL,
-        puzzle_number INT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_guild_date (guild_id, game_date),
@@ -200,10 +198,10 @@ export async function saveSession(pool, sessionData) {
 
   try {
     await pool.query(
-      `INSERT INTO active_sessions (session_id, guild_id, channel_id, message_id, game_date, puzzle_number)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO active_sessions (session_id, guild_id, channel_id, message_id, game_date)
+       VALUES (?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE last_update = CURRENT_TIMESTAMP`,
-      [sessionData.sessionId, sessionData.guildId, sessionData.channelId, sessionData.messageId, getTodayDate(), sessionData.puzzleNumber]
+      [sessionData.sessionId, sessionData.guildId, sessionData.channelId, sessionData.messageId, getTodayDate()]
     );
   } catch (error) {
     console.error("Error saving session:", error);
@@ -235,7 +233,7 @@ export async function loadActiveSessions(pool) {
   try {
     const today = getTodayDate();
     const [sessions] = await pool.query(
-      `SELECT session_id, guild_id, channel_id, message_id, puzzle_number
+      `SELECT session_id, guild_id, channel_id, message_id
        FROM active_sessions
        WHERE game_date = ?`,
       [today]
@@ -256,7 +254,6 @@ export async function loadActiveSessions(pool) {
         channelId: session.channel_id,
         messageId: session.message_id,
         guildId: session.guild_id,
-        puzzleNumber: session.puzzle_number,
         players: players.map(p => ({
           userId: p.user_id,
           username: p.username,

@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } from "discord.js";
-import { getTodayDate, getPuzzleNumber, addDays } from "./utils.js";
+import { getTodayDate, addDays } from "./utils.js";
 import { generateGameImage } from "../image-generator.js";
 
 /**
@@ -11,8 +11,6 @@ import { generateGameImage } from "../image-generator.js";
  */
 export async function buildRecapResponse(guildId, gameDate, pool) {
   try {
-    const puzzleNumber = getPuzzleNumber(gameDate);
-
     let allResults = [];
     if (pool) {
       const [rows] = await pool.query(
@@ -45,10 +43,10 @@ export async function buildRecapResponse(guildId, gameDate, pool) {
       guessHistory: typeof result.guess_history === 'string' ? JSON.parse(result.guess_history) : result.guess_history
     }));
 
-    const imageBuffer = await generateGameImage({ players, puzzleNumber });
+    const imageBuffer = await generateGameImage({ players, gameDate });
     const attachment = new AttachmentBuilder(imageBuffer, { name: "synapse-recap.png" });
 
-    const messageText = buildRecapMessage(sortedResults, puzzleNumber);
+    const messageText = buildRecapMessage(sortedResults, gameDate);
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -68,17 +66,17 @@ export async function buildRecapResponse(guildId, gameDate, pool) {
   }
 }
 
-export async function trackSessionCompletion(sessionId, guildId, channelId, messageId, players, puzzleNumber, interaction, webhook, pool) {
+export async function trackSessionCompletion(sessionId, guildId, channelId, messageId, players, interaction, webhook, pool) {
   if (!pool) return;
 
   const gameDate = getTodayDate();
 
   try {
     await pool.query(
-      `INSERT INTO pending_recaps (channel_id, guild_id, game_date, puzzle_number, recap_posted)
-       VALUES (?, ?, ?, ?, FALSE)
-       ON DUPLICATE KEY UPDATE puzzle_number = VALUES(puzzle_number)`,
-      [channelId, guildId, gameDate, puzzleNumber]
+      `INSERT INTO pending_recaps (channel_id, guild_id, game_date, recap_posted)
+       VALUES (?, ?, ?, FALSE)
+       ON DUPLICATE KEY UPDATE game_date = VALUES(game_date)`,
+      [channelId, guildId, gameDate]
     );
     console.log(`📝 Tracked completion in DB for channel ${channelId} on ${gameDate}`);
   } catch (error) {
@@ -103,7 +101,7 @@ export async function checkForRecaps(client, pool) {
 
   try {
     const [rows] = await pool.query(
-      `SELECT channel_id, guild_id, game_date, puzzle_number
+      `SELECT channel_id, guild_id, game_date
        FROM pending_recaps
        WHERE game_date = ? AND recap_posted = FALSE`,
       [yesterday]
@@ -119,8 +117,7 @@ export async function checkForRecaps(client, pool) {
       const completion = {
         channelId: pending.channel_id,
         guildId: pending.guild_id,
-        gameDate: pending.game_date,
-        puzzleNumber: pending.puzzle_number
+        gameDate: pending.game_date
       };
 
       try {
@@ -201,16 +198,23 @@ function calculateTiebreakerScore(guessHistory) {
   return score;
 }
 
-function buildRecapMessage(results, puzzleNumber) {
+function buildRecapMessage(results, gameDate) {
+  const formattedDate = new Date(gameDate + "T12:00:00").toLocaleDateString("en-US", {
+    timeZone: "America/New_York",
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  });
+
   if (results.length === 0) {
-    return `📊 **Synapse #${puzzleNumber}**\n\nNo one completed the puzzle.`;
+    return `📊 **Synapse - ${formattedDate}**\n\nNo one completed the puzzle.`;
   }
 
   const playerCount = results.length;
   const winner = results[0];
   const isPerfect = winner.score === 4 && winner.mistakes === 0;
 
-  let message = `📊 **Synapse #${puzzleNumber}** - ${playerCount} player${playerCount !== 1 ? 's' : ''} completed!\n\n`;
+  let message = `📊 **Synapse - ${formattedDate}** - ${playerCount} player${playerCount !== 1 ? 's' : ''} completed!\n\n`;
 
   message += `🏆 ${isPerfect ? '**Perfect!** ' : ''}<@${winner.user_id}>`;
 

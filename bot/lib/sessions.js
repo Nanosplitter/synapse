@@ -1,5 +1,5 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
-import { getPuzzleNumber, getTodayDate } from "./utils.js";
+import { getTodayDate } from "./utils.js";
 import { createGameAttachment, createPlayButton, launchActivity, getDisplayName } from "./discord-utils.js";
 import { notifySessionStart, notifyPlayerJoin, fetchSession } from "./server-api.js";
 import { saveSession, saveSessionPlayer } from "./database.js";
@@ -8,7 +8,6 @@ export async function startGameSession(interaction, client, activeSessions, pool
   try {
     const guildId = interaction.guildId || "dm";
     const channelId = interaction.channelId;
-    const puzzleNumber = getPuzzleNumber();
 
     console.log(`🎬 Starting new multi-user session for guild: ${guildId}`);
     console.log(`📍 Initial interaction.channelId: ${channelId}`);
@@ -19,13 +18,13 @@ export async function startGameSession(interaction, client, activeSessions, pool
 
     await interaction.deferReply();
 
-    const attachment = await createGameAttachment([], puzzleNumber);
+    const attachment = await createGameAttachment([]);
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`launch_activity_temp`).setLabel("Play now!").setStyle(ButtonStyle.Primary)
     );
 
     await interaction.editReply({
-      content: `Click **Play now!** to join today's Synapse #${puzzleNumber}`,
+      content: `Click **Play now!** to join today's Synapse`,
       files: [attachment],
       components: [row]
     });
@@ -43,7 +42,7 @@ export async function startGameSession(interaction, client, activeSessions, pool
 
     const updatedRow = createPlayButton(sessionId);
     await interaction.editReply({
-      content: `Click **Play now!** to join today's Synapse #${puzzleNumber}`,
+      content: `Click **Play now!** to join today's Synapse`,
       files: [attachment],
       components: [updatedRow]
     });
@@ -53,7 +52,6 @@ export async function startGameSession(interaction, client, activeSessions, pool
       channelId: actualChannelId,
       messageId: reply.id,
       guildId,
-      puzzleNumber,
       players: [],
       interaction
     };
@@ -89,7 +87,6 @@ export async function createReplySession(interaction, originalSession, client, a
     const userId = interaction.user.id;
     const username = getDisplayName(interaction);
     const avatarUrl = interaction.user.displayAvatarURL({ format: "png" });
-    const puzzleNumber = originalSession.puzzleNumber;
 
     console.log(`🔄 Creating reply session for ${username} (original session complete)`);
 
@@ -97,15 +94,14 @@ export async function createReplySession(interaction, originalSession, client, a
     console.log(`🚀 Activity launched for ${username}`);
 
     const attachment = await createGameAttachment(
-      [{ userId, username, avatarUrl, guessHistory: [], lastGuessCount: 0 }],
-      puzzleNumber
+      [{ userId, username, avatarUrl, guessHistory: [], lastGuessCount: 0 }]
     );
 
     console.log(`📤 Creating webhook message for new session`);
 
     const webhook = interaction.webhook;
     const followUpMessage = await webhook.send({
-      content: `**${username}** is playing Synapse #${puzzleNumber}`,
+      content: `**${username}** is playing Synapse`,
       files: [attachment],
       components: [
         new ActionRowBuilder().addComponents(
@@ -137,7 +133,6 @@ export async function createReplySession(interaction, originalSession, client, a
       channelId: actualChannelId,
       messageId: followUpMessage.id,
       guildId: originalSession.guildId,
-      puzzleNumber,
       players: [{ userId, username, avatarUrl, guessHistory: [], lastGuessCount: 0 }],
       interaction: null,
       webhook: webhook,
@@ -180,7 +175,6 @@ export async function restoreSessionFromServer(sessionId, activeSessions, client
     channelId: serverSession.channelId,
     messageId: sessionId,
     guildId: serverSession.guildId,
-    puzzleNumber: getPuzzleNumber(),
     players: Object.entries(serverSession.players || {}).map(([userId, player]) => ({
       userId,
       username: player.username,

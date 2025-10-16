@@ -74,9 +74,9 @@ export async function checkSessionUpdates(client, activeSessions, pool) {
             return correctCount === 4 || mistakeCount >= 4;
           });
 
-          const attachment = await createGameAttachment(session.players, session.puzzleNumber);
+          const attachment = await createGameAttachment(session.players);
           const button = createPlayButton(sessionId);
-          const messageText = formatPlayerMessage(session.players, session.puzzleNumber, allComplete);
+          const messageText = formatPlayerMessage(session.players, allComplete);
           await updateSessionMessage(client, session, attachment, messageText, button);
           console.log(`✅ Message updated!`);
 
@@ -87,7 +87,6 @@ export async function checkSessionUpdates(client, activeSessions, pool) {
               session.channelId,
               session.messageId,
               session.players,
-              session.puzzleNumber,
               session.interaction,
               session.webhook,
               pool
@@ -114,7 +113,6 @@ export async function checkSessionUpdates(client, activeSessions, pool) {
             session.channelId,
             session.messageId,
             session.players,
-            session.puzzleNumber,
             session.interaction,
             session.webhook,
             pool

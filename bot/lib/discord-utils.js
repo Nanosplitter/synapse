@@ -17,7 +17,7 @@ export function createPlayButton(sessionId) {
   );
 }
 
-export function formatPlayerMessage(players, puzzleNumber, isComplete = false) {
+export function formatPlayerMessage(players, isComplete = false) {
   const verb = isComplete
     ? players.length === 1
       ? "was playing"
@@ -27,20 +27,20 @@ export function formatPlayerMessage(players, puzzleNumber, isComplete = false) {
     : "are playing";
 
   if (players.length === 1) {
-    return `**${players[0].username}** ${verb} Synapse #${puzzleNumber}`;
+    return `**${players[0].username}** ${verb} Synapse`;
   } else if (players.length === 2) {
-    return `**${players[0].username}** and **${players[1].username}** ${verb} Synapse #${puzzleNumber}`;
+    return `**${players[0].username}** and **${players[1].username}** ${verb} Synapse`;
   } else {
     const names = players
       .slice(0, -1)
       .map((p) => `**${p.username}**`)
       .join(", ");
-    return `${names}, and **${players[players.length - 1].username}** ${verb} Synapse #${puzzleNumber}`;
+    return `${names}, and **${players[players.length - 1].username}** ${verb} Synapse`;
   }
 }
 
-export async function createGameAttachment(players, puzzleNumber) {
-  const imageBuffer = await generateGameImage({ players, puzzleNumber });
+export async function createGameAttachment(players) {
+  const imageBuffer = await generateGameImage({ players });
   return new AttachmentBuilder(imageBuffer, { name: "synapse.png" });
 }
 

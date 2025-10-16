@@ -38,9 +38,9 @@ export async function handlePlayerJoin(client, interaction, session, pool) {
   await notifyPlayerJoin(session.sessionId, userId, username, avatarUrl, session.guildId, getTodayDate());
 
   try {
-    const attachment = await createGameAttachment(session.players, session.puzzleNumber);
+    const attachment = await createGameAttachment(session.players);
     const button = createPlayButton(session.sessionId);
-    const messageText = formatPlayerMessage(session.players, session.puzzleNumber);
+    const messageText = formatPlayerMessage(session.players);
 
     if (session.interaction) {
       await session.interaction.editReply({

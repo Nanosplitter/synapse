@@ -26,10 +26,18 @@ export function addDays(dateString, days) {
 }
 
 export function getPuzzleNumber(dateString = null) {
-  const firstPuzzleDate = new Date("2023-06-12");
-  const targetDate = dateString ? new Date(dateString) : new Date();
-  const diffTime = Math.abs(targetDate - firstPuzzleDate);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const firstPuzzleDate = new Date("2023-06-12T12:00:00");
+
+  let targetDate;
+  if (dateString) {
+    targetDate = new Date(dateString + "T12:00:00");
+  } else {
+    const todayString = getTodayDate();
+    targetDate = new Date(todayString + "T12:00:00");
+  }
+
+  const diffTime = targetDate - firstPuzzleDate;
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
   return diffDays;
 }
 

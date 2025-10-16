@@ -4,18 +4,18 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
  * Generate a Synapse game grid image for multiple players
  * @param {Object} options - Image generation options
  * @param {Array} options.players - Array of player objects: { username, avatarUrl, guessHistory, isComplete }
- * @param {number} options.puzzleNumber - Puzzle number
+ * @param {string} options.gameDate - Game date in YYYY-MM-DD format
  * @returns {Buffer} PNG image buffer
  */
-export async function generateGameImage({ players = [], puzzleNumber = null }) {
+export async function generateGameImage({ players = [], gameDate = null }) {
   // If no players, show empty state
   if (players.length === 0) {
-    return generateEmptyImage(puzzleNumber);
+    return generateEmptyImage(gameDate);
   }
 
   // Single player: horizontal layout
   if (players.length === 1) {
-    return generateSinglePlayerImage(players[0], puzzleNumber);
+    return generateSinglePlayerImage(players[0], gameDate);
   }
 
   // Multiple players: side-by-side columns
@@ -48,7 +48,7 @@ export async function generateGameImage({ players = [], puzzleNumber = null }) {
 /**
  * Generate empty image when no players have joined
  */
-function generateEmptyImage(puzzleNumber) {
+function generateEmptyImage(gameDate) {
   const width = 500;
   const height = 300;
   const canvas = createCanvas(width, height);
@@ -61,8 +61,7 @@ function generateEmptyImage(puzzleNumber) {
   // Header
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 24px 'Liberation Sans', Arial, sans-serif";
-  const title = puzzleNumber ? `Synapse #${puzzleNumber}` : "Synapse";
-  ctx.fillText(title, 20, 40);
+  ctx.fillText("Synapse", 20, 40);
 
   // Message
   ctx.font = "18px 'Liberation Sans', Arial, sans-serif";
@@ -77,7 +76,7 @@ function generateEmptyImage(puzzleNumber) {
 /**
  * Generate single player image (horizontal layout)
  */
-async function generateSinglePlayerImage(player, puzzleNumber) {
+async function generateSinglePlayerImage(player, gameDate) {
   const width = 500;
   const height = 400; // Taller to fit all guesses
   const canvas = createCanvas(width, height);
