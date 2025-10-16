@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { initializeDatabase, checkForCompletedGames, postDailyPrompt, loadActiveSessions } from "./lib/database.js";
+import { initializeDatabase, loadActiveSessions } from "./lib/database.js";
 import { startGameSession, createReplySession, restoreSessionFromServer } from "./lib/sessions.js";
 import { checkSessionUpdates } from "./lib/session-updates.js";
 import { hasActivePlayer, handlePlayerJoin } from "./lib/player-handler.js";
@@ -40,14 +40,11 @@ client.on("ready", async () => {
 
   activeSessions = await loadActiveSessions(pool);
 
-  setInterval(() => checkForCompletedGames(client, pool), 30000);
-  console.log("✓ Started polling for completed games");
-
   setInterval(() => checkSessionUpdates(client, activeSessions, pool), 5000);
   console.log("✓ Started polling for session updates");
 
   setInterval(() => checkForRecaps(client, pool), 30000);
-  console.log("✓ Started polling for session recaps");
+  console.log("✓ Started polling for recaps (9am EST)");
 });
 
 client.on("interactionCreate", async (interaction) => {
