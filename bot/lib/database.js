@@ -160,7 +160,8 @@ export async function loadActiveSessions(pool) {
           guessHistory: typeof p.guess_history === 'string' ? JSON.parse(p.guess_history) : p.guess_history || [],
           lastGuessCount: p.last_guess_count
         })),
-        interaction: null
+        interaction: null,
+        webhook: null
       });
     }
 

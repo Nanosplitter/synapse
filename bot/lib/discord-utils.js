@@ -56,7 +56,13 @@ export async function launchActivity(client, interaction) {
 }
 
 export async function updateSessionMessage(client, session, attachment, messageText, button) {
-  if (session.interaction) {
+  if (session.webhook) {
+    await session.webhook.editMessage(session.messageId, {
+      content: messageText,
+      files: [attachment],
+      components: [button]
+    });
+  } else if (session.interaction) {
     await session.interaction.editReply({
       content: messageText,
       files: [attachment],

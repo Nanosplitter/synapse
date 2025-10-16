@@ -8,41 +8,45 @@ export async function startGameSession(interaction, client, activeSessions, pool
   try {
     const guildId = interaction.guildId || "dm";
     const channelId = interaction.channelId;
+    const userId = interaction.user.id;
+    const username = getDisplayName(interaction);
+    const avatarUrl = interaction.user.displayAvatarURL({ format: "png" });
 
-    console.log(`🎬 Starting new multi-user session for guild: ${guildId}`);
+    console.log(`🎬 Starting new session for guild: ${guildId}`);
     console.log(`📍 Initial interaction.channelId: ${channelId}`);
     console.log(`📍 interaction.channel exists: ${!!interaction.channel}`);
     if (interaction.channel) {
       console.log(`📍 interaction.channel.id: ${interaction.channel.id}, type: ${interaction.channel.type}`);
     }
 
-    await interaction.deferReply();
+    await launchActivity(client, interaction);
+    console.log(`🚀 Activity launched for ${username}`);
 
-    const attachment = await createGameAttachment([]);
+    const initialPlayers = [{ userId, username, avatarUrl, guessHistory: [], lastGuessCount: 0 }];
+    const attachment = await createGameAttachment(initialPlayers);
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`launch_activity_temp`).setLabel("Play now!").setStyle(ButtonStyle.Primary)
     );
 
-    await interaction.editReply({
-      content: `Click **Play now!** to join today's Synapse`,
+    const messageContent = `**${username}** is playing Synapse`;
+
+    const webhook = interaction.webhook;
+    const reply = await webhook.send({
+      content: messageContent,
       files: [attachment],
-      components: [row]
+      components: [row],
+      wait: true
     });
+    console.log(`📍 Reply object - channelId: ${reply.channel_id}`);
 
-    const reply = await interaction.fetchReply();
-    console.log(`📍 Reply object - channelId: ${reply.channelId}, channel exists: ${!!reply.channel}`);
-    if (reply.channel) {
-      console.log(`📍 reply.channel.id: ${reply.channel.id}, type: ${reply.channel.type}`);
-    }
-
-    const actualChannelId = reply.channel?.id || reply.channelId || channelId;
+    const actualChannelId = reply.channel_id || channelId;
     const sessionId = reply.id;
 
     console.log(`📍 Created session ${sessionId} in channel ${actualChannelId}`);
 
     const updatedRow = createPlayButton(sessionId);
-    await interaction.editReply({
-      content: `Click **Play now!** to join today's Synapse`,
+    await webhook.editMessage(reply.id, {
+      content: messageContent,
       files: [attachment],
       components: [updatedRow]
     });
@@ -52,8 +56,9 @@ export async function startGameSession(interaction, client, activeSessions, pool
       channelId: actualChannelId,
       messageId: reply.id,
       guildId,
-      players: [],
-      interaction
+      players: initialPlayers,
+      interaction: null,
+      webhook: webhook
     };
 
     activeSessions.set(sessionId, sessionData);
@@ -61,19 +66,17 @@ export async function startGameSession(interaction, client, activeSessions, pool
 
     const gameDate = getTodayDate();
     await notifySessionStart(sessionId, guildId, actualChannelId, reply.id, gameDate);
+    await notifyPlayerJoin(sessionId, userId, username, avatarUrl, guildId, gameDate);
+    await saveSessionPlayer(pool, sessionId, { userId, username, avatarUrl, guessHistory: [], lastGuessCount: 0 });
 
-    console.log(`✓ Started multi-user game session ${sessionId}`);
+    console.log(`✓ Started session ${sessionId} with ${username} as first player`);
   } catch (error) {
     console.error("Error starting game session:", error);
     try {
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: "Failed to start game session. Please try again.",
+      if (interaction.webhook) {
+        await interaction.webhook.send({
+          content: "❌ Failed to start game session. Please try again.",
           flags: 64
-        });
-      } else if (interaction.deferred) {
-        await interaction.editReply({
-          content: "Failed to start game session. Please try again."
         });
       }
     } catch (replyError) {
@@ -103,7 +106,8 @@ export async function restoreSessionFromServer(sessionId, activeSessions, client
       guessHistory: player.guessHistory || [],
       lastGuessCount: player.guessHistory?.length || 0
     })),
-    interaction: null
+    interaction: null,
+    webhook: null
   };
 
   activeSessions.set(sessionId, session);
