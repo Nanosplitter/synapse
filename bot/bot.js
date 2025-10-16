@@ -95,6 +95,52 @@ client.on("interactionCreate", async (interaction) => {
 
   if (interaction.isButton()) {
     if (interaction.customId.startsWith("start_new_session_")) {
+      const channelId = interaction.channelId;
+
+      const existingSession = Array.from(activeSessions.values()).find((s) => s.channelId === channelId);
+
+      if (existingSession) {
+        console.log(
+          `📌 Found existing session ${existingSession.sessionId} in channel ${channelId}, joining that instead`
+        );
+
+        const userId = interaction.user.id;
+        const username = getDisplayName(interaction);
+        const guildId = existingSession.guildId || "dm";
+        const today = getTodayDate();
+
+        const hasCompleted = await hasPlayerCompletedGame(guildId, userId, today);
+        if (hasCompleted) {
+          console.log(`✅ ${username} has already completed today's game - launching activity to view results`);
+          await launchActivity(client, interaction);
+          console.log(`🚀 Activity launched for ${username} (view only - already completed)`);
+          return;
+        }
+
+        const existingPlayer = existingSession.players.find((p) => p.userId === userId);
+
+        if (!existingPlayer) {
+          const hasActive = hasActivePlayer(existingSession);
+          console.log(
+            `📊 Session ${existingSession.sessionId}: ${existingSession.players.length} player(s), hasActivePlayer: ${hasActive}`
+          );
+
+          if (existingSession.players.length > 0 && !hasActive) {
+            console.log(`🔄 All players in session ${existingSession.sessionId} are complete - starting new session`);
+            await startGameSession(interaction, client, activeSessions, pool);
+            return;
+          }
+
+          await handlePlayerJoin(client, interaction, existingSession, pool);
+        } else {
+          console.log(`♻️ ${username} rejoining session ${existingSession.sessionId}`);
+        }
+
+        await launchActivity(client, interaction);
+        console.log(`🚀 Activity launched silently for ${username}`);
+        return;
+      }
+
       await startGameSession(interaction, client, activeSessions, pool);
       return;
     }
