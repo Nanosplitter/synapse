@@ -31,16 +31,16 @@ export async function buildRecapResponse(guildId, gameDate, pool) {
       if (b.score !== a.score) return b.score - a.score;
       if (a.mistakes !== b.mistakes) return a.mistakes - b.mistakes;
 
-      const aGuessHistory = typeof a.guess_history === 'string' ? JSON.parse(a.guess_history) : a.guess_history;
-      const bGuessHistory = typeof b.guess_history === 'string' ? JSON.parse(b.guess_history) : b.guess_history;
+      const aGuessHistory = typeof a.guess_history === "string" ? JSON.parse(a.guess_history) : a.guess_history;
+      const bGuessHistory = typeof b.guess_history === "string" ? JSON.parse(b.guess_history) : b.guess_history;
 
       return calculateTiebreakerScore(bGuessHistory) - calculateTiebreakerScore(aGuessHistory);
     });
 
-    const players = sortedResults.map(result => ({
+    const players = sortedResults.map((result) => ({
       username: result.username,
       avatarUrl: result.avatar ? `https://cdn.discordapp.com/avatars/${result.user_id}/${result.avatar}.png` : null,
-      guessHistory: typeof result.guess_history === 'string' ? JSON.parse(result.guess_history) : result.guess_history
+      guessHistory: typeof result.guess_history === "string" ? JSON.parse(result.guess_history) : result.guess_history
     }));
 
     const imageBuffer = await generateGameImage({ players, gameDate });
@@ -49,10 +49,7 @@ export async function buildRecapResponse(guildId, gameDate, pool) {
     const messageText = buildRecapMessage(sortedResults, gameDate);
 
     const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`start_new_session_any`)
-        .setLabel("Play now!")
-        .setStyle(ButtonStyle.Primary)
+      new ButtonBuilder().setCustomId(`start_new_session_any`).setLabel("Play now!").setStyle(ButtonStyle.Primary)
     );
 
     return {
@@ -66,7 +63,7 @@ export async function buildRecapResponse(guildId, gameDate, pool) {
   }
 }
 
-export async function trackSessionCompletion(sessionId, guildId, channelId, messageId, players, interaction, webhook, pool) {
+export async function trackSessionCompletion(guildId, channelId, pool) {
   if (!pool) return;
 
   const gameDate = getTodayDate();
@@ -85,11 +82,12 @@ export async function trackSessionCompletion(sessionId, guildId, channelId, mess
 }
 
 export async function checkForRecaps(client, pool) {
+  console.log("🔍 Checking for pending recaps...");
   if (!pool) return;
 
   const recapHour = parseInt(process.env.RECAP_HOUR || "9", 10);
-  const recapMinute = parseInt(process.env.RECAP_MINUTE || "5", 10);
-  const recapTimeZoneOffset = parseInt(process.env.RECAP_TIMEZONE_OFFSET || "-5", 10);
+  const recapMinute = parseInt(process.env.RECAP_MINUTE || "05", 10);
+  const recapTimeZoneOffset = parseInt(process.env.RECAP_TIMEZONE_OFFSET || "-4", 10);
 
   const now = new Date();
   const utcHour = now.getUTCHours();
@@ -217,12 +215,17 @@ function buildRecapMessage(results, gameDate) {
   const winner = results[0];
   const isPerfect = winner.score === 4 && winner.mistakes === 0;
 
-  let message = `📊 **Synapse - ${formattedDate}** - ${playerCount} player${playerCount !== 1 ? 's' : ''} completed!\n\n`;
+  let message = `📊 **Synapse - ${formattedDate}** - ${playerCount} player${
+    playerCount !== 1 ? "s" : ""
+  } completed!\n\n`;
 
-  message += `🏆 ${isPerfect ? '**Perfect!** ' : ''}<@${winner.user_id}>`;
+  message += `🏆 ${isPerfect ? "**Perfect!** " : ""}<@${winner.user_id}>`;
 
   if (results.length > 1) {
-    message += `\n${results.slice(1).map((r, index) => `${index + 2}. <@${r.user_id}>`).join('\n')}`;
+    message += `\n${results
+      .slice(1)
+      .map((r, index) => `${index + 2}. <@${r.user_id}>`)
+      .join("\n")}`;
   }
 
   return message;

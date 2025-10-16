@@ -81,16 +81,7 @@ export async function checkSessionUpdates(client, activeSessions, pool) {
           console.log(`✅ Message updated!`);
 
           if (allComplete && session.players.length > 0) {
-            await trackSessionCompletion(
-              sessionId,
-              session.guildId,
-              session.channelId,
-              session.messageId,
-              session.players,
-              session.interaction,
-              session.webhook,
-              pool
-            );
+            await trackSessionCompletion(session.guildId, session.channelId, pool);
             activeSessions.delete(sessionId);
             await deleteSession(pool, sessionId);
             console.log(`✓ Game session ${sessionId} completed - all players done`);
@@ -107,16 +98,7 @@ export async function checkSessionUpdates(client, activeSessions, pool) {
         });
 
         if (allComplete) {
-          await trackSessionCompletion(
-            sessionId,
-            session.guildId,
-            session.channelId,
-            session.messageId,
-            session.players,
-            session.interaction,
-            session.webhook,
-            pool
-          );
+          await trackSessionCompletion(session.guildId, session.channelId, pool);
           activeSessions.delete(sessionId);
           await deleteSession(pool, sessionId);
           console.log(`✓ Game session ${sessionId} completed - removing from active sessions`);

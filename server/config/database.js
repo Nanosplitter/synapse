@@ -38,7 +38,6 @@ export async function initializeDatabase() {
         channel_id VARCHAR(255) NOT NULL,
         guild_id VARCHAR(255) NOT NULL,
         game_date DATE NOT NULL,
-        puzzle_number INT NOT NULL,
         recap_posted BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         posted_at TIMESTAMP NULL DEFAULT NULL,
@@ -47,6 +46,13 @@ export async function initializeDatabase() {
         UNIQUE KEY unique_channel_recap (channel_id, game_date)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    // Migration: Remove puzzle_number column if it exists
+    await connection.query(`
+      ALTER TABLE pending_recaps DROP COLUMN IF EXISTS puzzle_number
+    `).catch(() => {
+      // Ignore error if column doesn't exist
+    });
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS server_sessions (

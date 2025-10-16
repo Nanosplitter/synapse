@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { initializeDatabase, loadActiveSessions } from "./lib/database.js";
-import { startGameSession, createReplySession, restoreSessionFromServer } from "./lib/sessions.js";
+import { startGameSession, restoreSessionFromServer } from "./lib/sessions.js";
 import { checkSessionUpdates } from "./lib/session-updates.js";
 import { hasActivePlayer, handlePlayerJoin } from "./lib/player-handler.js";
 import { launchActivity, getDisplayName } from "./lib/discord-utils.js";
@@ -130,8 +130,8 @@ client.on("interactionCreate", async (interaction) => {
             console.log(`📊 Session ${sessionId}: ${session.players.length} player(s), hasActivePlayer: ${hasActive}`);
 
             if (session.players.length > 0 && !hasActive) {
-              console.log(`🔄 All players in session ${sessionId} are complete - creating reply session`);
-              await createReplySession(interaction, session, client, activeSessions, pool);
+              console.log(`🔄 All players in session ${sessionId} are complete - starting new session`);
+              await startGameSession(interaction, client, activeSessions, pool);
               return;
             }
 

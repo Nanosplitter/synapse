@@ -27,6 +27,13 @@ export async function initializeDatabase(connectionString) {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // Migration: Remove puzzle_number column if it exists
+    await connection.query(`
+      ALTER TABLE pending_recaps DROP COLUMN IF EXISTS puzzle_number
+    `).catch(() => {
+      // Ignore error if column doesn't exist (MySQL < 8.0.23 doesn't support IF EXISTS)
+    });
+
     await connection.query(`
       CREATE TABLE IF NOT EXISTS posted_game_notifications (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -53,6 +60,13 @@ export async function initializeDatabase(connectionString) {
         INDEX idx_last_update (last_update)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    // Migration: Remove puzzle_number column if it exists
+    await connection.query(`
+      ALTER TABLE active_sessions DROP COLUMN IF EXISTS puzzle_number
+    `).catch(() => {
+      // Ignore error if column doesn't exist
+    });
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS session_players (
@@ -146,8 +160,7 @@ export async function loadActiveSessions(pool) {
           guessHistory: typeof p.guess_history === 'string' ? JSON.parse(p.guess_history) : p.guess_history || [],
           lastGuessCount: p.last_guess_count
         })),
-        interaction: null,
-        webhook: null
+        interaction: null
       });
     }
 

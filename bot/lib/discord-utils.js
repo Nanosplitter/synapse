@@ -62,12 +62,6 @@ export async function updateSessionMessage(client, session, attachment, messageT
       files: [attachment],
       components: [button]
     });
-  } else if (session.webhook) {
-    await session.webhook.editMessage(session.messageId, {
-      content: messageText,
-      files: [attachment],
-      components: [button]
-    });
   } else {
     await client.rest.patch(Routes.channelMessage(session.channelId, session.messageId), {
       body: {
