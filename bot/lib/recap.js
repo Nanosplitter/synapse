@@ -88,13 +88,16 @@ export async function checkForRecaps(client, pool) {
   if (!pool) return;
 
   const recapHour = parseInt(process.env.RECAP_HOUR || "9", 10);
+  const recapMinute = parseInt(process.env.RECAP_MINUTE || "5", 10);
   const recapTimeZoneOffset = parseInt(process.env.RECAP_TIMEZONE_OFFSET || "-5", 10);
 
   const now = new Date();
   const utcHour = now.getUTCHours();
+  const utcMinute = now.getUTCMinutes();
   const localHour = (utcHour + recapTimeZoneOffset + 24) % 24;
 
   if (localHour < recapHour) return;
+  if (localHour === recapHour && utcMinute < recapMinute) return;
 
   const today = getTodayDate();
   const yesterday = addDays(today, -1);

@@ -44,7 +44,7 @@ client.on("ready", async () => {
   console.log("✓ Started polling for session updates");
 
   setInterval(() => checkForRecaps(client, pool), 30000);
-  console.log("✓ Started polling for recaps (9am EST)");
+  console.log("✓ Started polling for recaps (9:05am EST)");
 });
 
 client.on("interactionCreate", async (interaction) => {
