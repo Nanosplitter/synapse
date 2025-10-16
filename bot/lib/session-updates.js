@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import { createPlayButton, formatPlayerMessage, updateSessionMessage, createGameAttachment } from "./discord-utils.js";
 import { trackSessionCompletion } from "./recap.js";
+import { saveSessionPlayer, deleteSession } from "./database.js";
 
 const SERVER_URL = process.env.SERVER_URL || "http://localhost:3001";
 
@@ -56,6 +57,7 @@ export async function checkSessionUpdates(client, activeSessions, pool) {
             );
             localPlayer.guessHistory = serverPlayer.guessHistory;
             localPlayer.lastGuessCount = serverGuessCount;
+            await saveSessionPlayer(pool, sessionId, localPlayer);
             hasUpdates = true;
           }
         }
@@ -91,6 +93,7 @@ export async function checkSessionUpdates(client, activeSessions, pool) {
               pool
             );
             activeSessions.delete(sessionId);
+            await deleteSession(pool, sessionId);
             console.log(`✓ Game session ${sessionId} completed - all players done`);
           }
         } catch (editError) {
@@ -117,6 +120,7 @@ export async function checkSessionUpdates(client, activeSessions, pool) {
             pool
           );
           activeSessions.delete(sessionId);
+          await deleteSession(pool, sessionId);
           console.log(`✓ Game session ${sessionId} completed - removing from active sessions`);
         }
       }

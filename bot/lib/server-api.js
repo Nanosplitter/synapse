@@ -2,12 +2,12 @@ import fetch from "node-fetch";
 
 const SERVER_URL = process.env.SERVER_URL || "http://localhost:3001";
 
-export async function notifySessionStart(sessionId, guildId, channelId, messageId) {
+export async function notifySessionStart(sessionId, guildId, channelId, messageId, date) {
   try {
     const response = await fetch(`${SERVER_URL}/api/sessions/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId, guildId, channelId, messageId })
+      body: JSON.stringify({ sessionId, guildId, channelId, messageId, date })
     });
 
     if (!response.ok) {

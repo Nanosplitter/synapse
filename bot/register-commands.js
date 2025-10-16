@@ -18,8 +18,8 @@ const commands = [
   new SlashCommandBuilder()
     .setName("recap")
     .setDescription("Post a recap from yesterday's Synapse game")
-    .setContexts([0]) // 0 = Guild only
-    .setIntegrationTypes([0]) // 0 = Guild Install only
+    .setContexts([0, 1, 2]) // 0 = Guild only
+    .setIntegrationTypes([0, 1]) // 0 = Guild Install only
     .toJSON()
 ];
 

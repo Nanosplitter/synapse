@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { initializeDatabase, checkForCompletedGames, postDailyPrompt } from "./lib/database.js";
+import { initializeDatabase, checkForCompletedGames, postDailyPrompt, loadActiveSessions } from "./lib/database.js";
 import { startGameSession, createReplySession, restoreSessionFromServer } from "./lib/sessions.js";
 import { checkSessionUpdates } from "./lib/session-updates.js";
 import { hasActivePlayer, handlePlayerJoin } from "./lib/player-handler.js";
@@ -27,8 +27,7 @@ const client = new Client({
 });
 
 let pool;
-const postedGames = new Set();
-const activeSessions = new Map();
+let activeSessions = new Map();
 
 client.on("ready", async () => {
   console.log(`✓ Logged in as ${client.user.tag}!`);
@@ -39,7 +38,9 @@ client.on("ready", async () => {
 
   pool = await initializeDatabase(process.env.MYSQL_CONNECTION_STRING);
 
-  setInterval(() => checkForCompletedGames(client, pool, postedGames), 30000);
+  activeSessions = await loadActiveSessions(pool);
+
+  setInterval(() => checkForCompletedGames(client, pool), 30000);
   console.log("✓ Started polling for completed games");
 
   setInterval(() => checkSessionUpdates(client, activeSessions, pool), 5000);
@@ -52,7 +53,7 @@ client.on("ready", async () => {
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isChatInputCommand()) {
     if (interaction.commandName === "synapse") {
-      await startGameSession(interaction, client, activeSessions);
+      await startGameSession(interaction, client, activeSessions, pool);
       return;
     }
 
@@ -97,7 +98,7 @@ client.on("interactionCreate", async (interaction) => {
 
   if (interaction.isButton()) {
     if (interaction.customId.startsWith("start_new_session_")) {
-      await startGameSession(interaction, client, activeSessions);
+      await startGameSession(interaction, client, activeSessions, pool);
       return;
     }
 
@@ -133,11 +134,11 @@ client.on("interactionCreate", async (interaction) => {
 
             if (session.players.length > 0 && !hasActive) {
               console.log(`🔄 All players in session ${sessionId} are complete - creating reply session`);
-              await createReplySession(interaction, session, client, activeSessions);
+              await createReplySession(interaction, session, client, activeSessions, pool);
               return;
             }
 
-            await handlePlayerJoin(client, interaction, session);
+            await handlePlayerJoin(client, interaction, session, pool);
           } else {
             console.log(`♻️ ${username} rejoining session ${sessionId}`);
           }

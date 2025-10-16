@@ -48,6 +48,40 @@ export async function initializeDatabase() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS server_sessions (
+        message_session_id VARCHAR(255) PRIMARY KEY,
+        guild_id VARCHAR(255) NOT NULL,
+        channel_id VARCHAR(255) NOT NULL,
+        game_date DATE NOT NULL,
+        last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_guild_date (guild_id, game_date),
+        INDEX idx_last_update (last_update)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS server_session_players (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        message_session_id VARCHAR(255) NOT NULL,
+        user_id VARCHAR(255) NOT NULL,
+        username VARCHAR(255) NOT NULL,
+        avatar_url TEXT,
+        guess_history JSON,
+        FOREIGN KEY (message_session_id) REFERENCES server_sessions(message_session_id) ON DELETE CASCADE,
+        INDEX idx_session (message_session_id),
+        UNIQUE KEY unique_player_session (message_session_id, user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS user_session_mappings (
+        user_session_id VARCHAR(255) PRIMARY KEY,
+        message_session_id VARCHAR(255) NOT NULL,
+        INDEX idx_message_session (message_session_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     console.log("✓ Database tables initialized!");
     connection.release();
   } catch (error) {

@@ -2,8 +2,9 @@ import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import { getPuzzleNumber, getTodayDate } from "./utils.js";
 import { createGameAttachment, createPlayButton, launchActivity, getDisplayName } from "./discord-utils.js";
 import { notifySessionStart, notifyPlayerJoin, fetchSession } from "./server-api.js";
+import { saveSession, saveSessionPlayer } from "./database.js";
 
-export async function startGameSession(interaction, client, activeSessions) {
+export async function startGameSession(interaction, client, activeSessions, pool) {
   try {
     const guildId = interaction.guildId || "dm";
     const channelId = interaction.channelId;
@@ -47,7 +48,7 @@ export async function startGameSession(interaction, client, activeSessions) {
       components: [updatedRow]
     });
 
-    activeSessions.set(sessionId, {
+    const sessionData = {
       sessionId,
       channelId: actualChannelId,
       messageId: reply.id,
@@ -55,9 +56,13 @@ export async function startGameSession(interaction, client, activeSessions) {
       puzzleNumber,
       players: [],
       interaction
-    });
+    };
 
-    await notifySessionStart(sessionId, guildId, actualChannelId, reply.id);
+    activeSessions.set(sessionId, sessionData);
+    await saveSession(pool, sessionData);
+
+    const gameDate = getTodayDate();
+    await notifySessionStart(sessionId, guildId, actualChannelId, reply.id, gameDate);
 
     console.log(`✓ Started multi-user game session ${sessionId}`);
   } catch (error) {
@@ -79,7 +84,7 @@ export async function startGameSession(interaction, client, activeSessions) {
   }
 }
 
-export async function createReplySession(interaction, originalSession, client, activeSessions) {
+export async function createReplySession(interaction, originalSession, client, activeSessions, pool) {
   try {
     const userId = interaction.user.id;
     const username = getDisplayName(interaction);
@@ -127,7 +132,7 @@ export async function createReplySession(interaction, originalSession, client, a
       ]
     });
 
-    activeSessions.set(newSessionId, {
+    const sessionData = {
       sessionId: newSessionId,
       channelId: actualChannelId,
       messageId: followUpMessage.id,
@@ -137,10 +142,14 @@ export async function createReplySession(interaction, originalSession, client, a
       interaction: null,
       webhook: webhook,
       parentMessageId: originalSession.messageId
-    });
+    };
+
+    activeSessions.set(newSessionId, sessionData);
+    await saveSession(pool, sessionData);
+    await saveSessionPlayer(pool, newSessionId, { userId, username, avatarUrl, guessHistory: [], lastGuessCount: 0 });
 
     const gameDate = getTodayDate();
-    await notifySessionStart(newSessionId, originalSession.guildId, actualChannelId, followUpMessage.id);
+    await notifySessionStart(newSessionId, originalSession.guildId, actualChannelId, followUpMessage.id, gameDate);
     await notifyPlayerJoin(newSessionId, userId, username, avatarUrl, originalSession.guildId, gameDate);
 
     console.log(`✓ Reply session ${newSessionId} created with ${username} as first player`);

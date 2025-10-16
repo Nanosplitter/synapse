@@ -1,6 +1,7 @@
 import { getTodayDate } from "./utils.js";
 import { notifyPlayerJoin } from "./server-api.js";
 import { createGameAttachment, createPlayButton, formatPlayerMessage, updateSessionMessage, getDisplayName } from "./discord-utils.js";
+import { saveSessionPlayer } from "./database.js";
 
 export function isPlayerGameComplete(player) {
   const guessHistory = player.guessHistory || [];
@@ -16,21 +17,24 @@ export function hasActivePlayer(session) {
   return session.players.some((player) => !isPlayerGameComplete(player));
 }
 
-export async function handlePlayerJoin(client, interaction, session) {
+export async function handlePlayerJoin(client, interaction, session, pool) {
   const userId = interaction.user.id;
   const username = getDisplayName(interaction);
   const avatarUrl = interaction.user.displayAvatarURL({ format: "png" });
 
-  session.players.push({
+  const playerData = {
     userId,
     username,
     avatarUrl,
     guessHistory: [],
     lastGuessCount: 0
-  });
+  };
+
+  session.players.push(playerData);
 
   console.log(`➕ Added ${username} to session ${session.sessionId}. Total players: ${session.players.length}`);
 
+  await saveSessionPlayer(pool, session.sessionId, playerData);
   await notifyPlayerJoin(session.sessionId, userId, username, avatarUrl, session.guildId, getTodayDate());
 
   try {

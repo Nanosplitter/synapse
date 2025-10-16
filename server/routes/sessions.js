@@ -12,8 +12,8 @@ import {
 const router = Router();
 
 router.post("/api/sessions/start", async (req, res) => {
-  const { sessionId, guildId, channelId, messageId } = req.body;
-  const session = createSession(sessionId, guildId, channelId);
+  const { sessionId, guildId, channelId, messageId, date } = req.body;
+  const session = await createSession(sessionId, guildId, channelId, date);
   res.json({ success: true, session });
 });
 
@@ -21,7 +21,7 @@ router.post("/api/sessions/:messageSessionId/join", async (req, res) => {
   const { messageSessionId } = req.params;
   const { userId, username, avatarUrl, guildId, date } = req.body;
 
-  const result = joinSession(messageSessionId, userId, username, avatarUrl, guildId, date);
+  const result = await joinSession(messageSessionId, userId, username, avatarUrl, guildId, date);
 
   if (result.error) {
     return res.status(404).json(result);
@@ -34,7 +34,7 @@ router.post("/api/sessions/:userSessionId/update", async (req, res) => {
   const { userSessionId } = req.params;
   const { guessHistory } = req.body;
 
-  const result = updateSession(userSessionId, guessHistory);
+  const result = await updateSession(userSessionId, guessHistory);
 
   if (result.error) {
     return res.status(404).json(result);
@@ -45,13 +45,13 @@ router.post("/api/sessions/:userSessionId/update", async (req, res) => {
 
 router.get("/api/sessions/lookup/:channelId/:userId/:date", async (req, res) => {
   const { channelId, userId, date } = req.params;
-  const result = lookupSession(channelId, userId, date);
+  const result = await lookupSession(channelId, userId, date);
   res.json(result);
 });
 
 router.get("/api/sessions/:sessionId", async (req, res) => {
   const { sessionId } = req.params;
-  const session = getSession(sessionId);
+  const session = await getSession(sessionId);
 
   if (!session) {
     return res.status(404).json({ error: "Session not found" });
