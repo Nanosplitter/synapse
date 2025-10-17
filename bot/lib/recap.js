@@ -11,23 +11,45 @@ import { generateGameImage } from "../image-generator.js";
  */
 export async function buildRecapResponse(guildId, gameDate, pool) {
   try {
-    let allResults = [];
+    let completedResults = [];
+    let incompletePlayers = [];
+
     if (pool) {
-      const [rows] = await pool.query(
+      const [completedRows] = await pool.query(
         `SELECT user_id, username, avatar, score, mistakes, guess_history, completed_at
          FROM game_results
          WHERE guild_id = ? AND game_date = ?
          ORDER BY completed_at ASC`,
         [guildId, gameDate]
       );
-      allResults = rows;
+      completedResults = completedRows;
+
+      const completedUserIds = completedResults.map(r => r.user_id);
+
+      const [sessionRows] = await pool.query(
+        `SELECT DISTINCT sp.user_id, sp.username, sp.avatar_url, sp.guess_history
+         FROM session_players sp
+         JOIN active_sessions s ON sp.session_id = s.session_id
+         WHERE s.guild_id = ? AND s.game_date = ?`,
+        [guildId, gameDate]
+      );
+
+      incompletePlayers = sessionRows
+        .filter(sp => !completedUserIds.includes(sp.user_id))
+        .map(sp => ({
+          user_id: sp.user_id,
+          username: sp.username,
+          avatar: sp.avatar_url ? sp.avatar_url.split('/').pop().split('.')[0] : null,
+          guessHistory: typeof sp.guess_history === 'string' ? JSON.parse(sp.guess_history) : sp.guess_history || [],
+          completed: false
+        }));
     }
 
-    if (allResults.length === 0) {
+    if (completedResults.length === 0 && incompletePlayers.length === 0) {
       return null;
     }
 
-    const sortedResults = [...allResults].sort((a, b) => {
+    const sortedResults = [...completedResults].sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       if (a.mistakes !== b.mistakes) return a.mistakes - b.mistakes;
 
@@ -37,16 +59,23 @@ export async function buildRecapResponse(guildId, gameDate, pool) {
       return calculateTiebreakerScore(bGuessHistory) - calculateTiebreakerScore(aGuessHistory);
     });
 
-    const players = sortedResults.map((result) => ({
-      username: result.username,
-      avatarUrl: result.avatar ? `https://cdn.discordapp.com/avatars/${result.user_id}/${result.avatar}.png` : null,
-      guessHistory: typeof result.guess_history === "string" ? JSON.parse(result.guess_history) : result.guess_history
-    }));
+    const allPlayers = [
+      ...sortedResults.map((result) => ({
+        username: result.username,
+        avatarUrl: result.avatar ? `https://cdn.discordapp.com/avatars/${result.user_id}/${result.avatar}.png` : null,
+        guessHistory: typeof result.guess_history === "string" ? JSON.parse(result.guess_history) : result.guess_history
+      })),
+      ...incompletePlayers.map((player) => ({
+        username: player.username,
+        avatarUrl: player.avatar ? `https://cdn.discordapp.com/avatars/${player.user_id}/${player.avatar}.png` : null,
+        guessHistory: player.guessHistory
+      }))
+    ];
 
-    const imageBuffer = await generateGameImage({ players, gameDate });
+    const imageBuffer = await generateGameImage({ players: allPlayers, gameDate });
     const attachment = new AttachmentBuilder(imageBuffer, { name: "synapse-recap.png" });
 
-    const messageText = buildRecapMessage(sortedResults, gameDate);
+    const messageText = buildRecapMessage(sortedResults, incompletePlayers, gameDate);
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`start_new_session_any`).setLabel("Play now!").setStyle(ButtonStyle.Primary)
@@ -199,7 +228,7 @@ function calculateTiebreakerScore(guessHistory) {
   return score;
 }
 
-function buildRecapMessage(results, gameDate) {
+function buildRecapMessage(completedResults, incompletePlayers, gameDate) {
   const formattedDate = new Date(gameDate + "T12:00:00").toLocaleDateString("en-US", {
     timeZone: "America/New_York",
     month: "long",
@@ -207,25 +236,39 @@ function buildRecapMessage(results, gameDate) {
     year: "numeric"
   });
 
-  if (results.length === 0) {
-    return `📊 **Synapse - ${formattedDate}**\n\nNo one completed the puzzle.`;
+  const totalPlayers = completedResults.length + incompletePlayers.length;
+
+  if (totalPlayers === 0) {
+    return `📊 **Synapse - ${formattedDate}**\n\nNo one played the puzzle.`;
   }
 
-  const playerCount = results.length;
-  const winner = results[0];
-  const isPerfect = winner.score === 4 && winner.mistakes === 0;
+  let message = `📊 **Synapse - ${formattedDate}**`;
 
-  let message = `📊 **Synapse - ${formattedDate}** - ${playerCount} player${
-    playerCount !== 1 ? "s" : ""
-  } completed!\n\n`;
+  if (completedResults.length > 0) {
+    const winner = completedResults[0];
+    const isPerfect = winner.score === 4 && winner.mistakes === 0;
 
-  message += `🏆 ${isPerfect ? "**Perfect!** " : ""}<@${winner.user_id}>`;
+    message += ` - ${completedResults.length} player${
+      completedResults.length !== 1 ? "s" : ""
+    } completed!\n\n`;
 
-  if (results.length > 1) {
-    message += `\n${results
-      .slice(1)
-      .map((r, index) => `${index + 2}. <@${r.user_id}>`)
-      .join("\n")}`;
+    message += `🏆 ${isPerfect ? "**Perfect!** " : ""}<@${winner.user_id}>`;
+
+    if (completedResults.length > 1) {
+      message += `\n${completedResults
+        .slice(1)
+        .map((r, index) => `${index + 2}. <@${r.user_id}>`)
+        .join("\n")}`;
+    }
+
+    if (incompletePlayers.length > 0) {
+      message += `\n\n**Started:** ${incompletePlayers.map(p => `<@${p.user_id}>`).join(", ")}`;
+    }
+  } else {
+    message += `\n\n${incompletePlayers.length} player${
+      incompletePlayers.length !== 1 ? "s" : ""
+    } started but didn't complete.\n\n`;
+    message += incompletePlayers.map(p => `<@${p.user_id}>`).join(", ");
   }
 
   return message;
