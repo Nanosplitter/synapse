@@ -29,6 +29,86 @@ const client = new Client({
 let pool;
 let activeSessions = new Map();
 
+async function handleGameInteraction(interaction, client, activeSessions, pool, excludeSessionId = null) {
+  const channelId = interaction.channelId;
+  const userId = interaction.user.id;
+  const guildId = interaction.guildId || "dm";
+  const today = getTodayDate();
+
+  let existingSession = null;
+
+  if (pool) {
+    try {
+      const [mappingRows] = await pool.query(
+        `SELECT m.message_session_id
+         FROM user_session_mappings m
+         JOIN server_sessions s ON m.message_session_id = s.message_session_id
+         WHERE m.user_session_id = ? AND s.channel_id = ? AND s.game_date = ?`,
+        [`${guildId}_${userId}_${today}`, channelId, today]
+      );
+
+      if (mappingRows.length > 0) {
+        const mappedSessionId = mappingRows[0].message_session_id;
+        if (mappedSessionId !== excludeSessionId) {
+          existingSession = activeSessions.get(mappedSessionId);
+          if (existingSession) {
+            console.log(`📌 Found user's mapped session ${mappedSessionId} in channel ${channelId}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error checking user session mapping:", error);
+    }
+  }
+
+  if (!existingSession) {
+    existingSession = Array.from(activeSessions.values()).find(
+      (s) => s.channelId === channelId && s.sessionId !== excludeSessionId
+    );
+  }
+
+  if (existingSession) {
+    console.log(
+      `📌 Found existing session ${existingSession.sessionId} in channel ${channelId}, joining that instead`
+    );
+
+    const username = getDisplayName(interaction);
+
+    const hasCompleted = await hasPlayerCompletedGame(guildId, userId, today);
+    if (hasCompleted) {
+      console.log(`✅ ${username} has already completed today's game - launching activity to view results`);
+      await launchActivity(client, interaction);
+      console.log(`🚀 Activity launched for ${username} (view only - already completed)`);
+      return;
+    }
+
+    const existingPlayer = existingSession.players.find((p) => p.userId === userId);
+
+    if (!existingPlayer) {
+      const hasActive = hasActivePlayer(existingSession);
+      console.log(
+        `📊 Session ${existingSession.sessionId}: ${existingSession.players.length} player(s), hasActivePlayer: ${hasActive}`
+      );
+
+      if (existingSession.players.length > 0 && !hasActive) {
+        console.log(`🔄 All players in session ${existingSession.sessionId} are complete - starting new session`);
+        await startGameSession(interaction, client, activeSessions, pool);
+        return;
+      }
+
+      await handlePlayerJoin(client, interaction, existingSession, pool);
+    } else {
+      console.log(`♻️ ${username} rejoining session ${existingSession.sessionId}`);
+    }
+
+    await launchActivity(client, interaction);
+    console.log(`🚀 Activity launched silently for ${username}`);
+    return;
+  }
+
+  await startGameSession(interaction, client, activeSessions, pool);
+}
+
 client.on("ready", async () => {
   console.log(`✓ Logged in as ${client.user.tag}!`);
   console.log(`🏰 Bot is in ${client.guilds.cache.size} guild(s):`);
@@ -50,7 +130,7 @@ client.on("ready", async () => {
 client.on("interactionCreate", async (interaction) => {
   if (interaction.isChatInputCommand()) {
     if (interaction.commandName === "synapse") {
-      await startGameSession(interaction, client, activeSessions, pool);
+      await handleGameInteraction(interaction, client, activeSessions, pool);
       return;
     }
 
@@ -95,53 +175,7 @@ client.on("interactionCreate", async (interaction) => {
 
   if (interaction.isButton()) {
     if (interaction.customId.startsWith("start_new_session_")) {
-      const channelId = interaction.channelId;
-
-      const existingSession = Array.from(activeSessions.values()).find((s) => s.channelId === channelId);
-
-      if (existingSession) {
-        console.log(
-          `📌 Found existing session ${existingSession.sessionId} in channel ${channelId}, joining that instead`
-        );
-
-        const userId = interaction.user.id;
-        const username = getDisplayName(interaction);
-        const guildId = existingSession.guildId || "dm";
-        const today = getTodayDate();
-
-        const hasCompleted = await hasPlayerCompletedGame(guildId, userId, today);
-        if (hasCompleted) {
-          console.log(`✅ ${username} has already completed today's game - launching activity to view results`);
-          await launchActivity(client, interaction);
-          console.log(`🚀 Activity launched for ${username} (view only - already completed)`);
-          return;
-        }
-
-        const existingPlayer = existingSession.players.find((p) => p.userId === userId);
-
-        if (!existingPlayer) {
-          const hasActive = hasActivePlayer(existingSession);
-          console.log(
-            `📊 Session ${existingSession.sessionId}: ${existingSession.players.length} player(s), hasActivePlayer: ${hasActive}`
-          );
-
-          if (existingSession.players.length > 0 && !hasActive) {
-            console.log(`🔄 All players in session ${existingSession.sessionId} are complete - starting new session`);
-            await startGameSession(interaction, client, activeSessions, pool);
-            return;
-          }
-
-          await handlePlayerJoin(client, interaction, existingSession, pool);
-        } else {
-          console.log(`♻️ ${username} rejoining session ${existingSession.sessionId}`);
-        }
-
-        await launchActivity(client, interaction);
-        console.log(`🚀 Activity launched silently for ${username}`);
-        return;
-      }
-
-      await startGameSession(interaction, client, activeSessions, pool);
+      await handleGameInteraction(interaction, client, activeSessions, pool);
       return;
     }
 
@@ -176,8 +210,8 @@ client.on("interactionCreate", async (interaction) => {
             console.log(`📊 Session ${sessionId}: ${session.players.length} player(s), hasActivePlayer: ${hasActive}`);
 
             if (session.players.length > 0 && !hasActive) {
-              console.log(`🔄 All players in session ${sessionId} are complete - starting new session`);
-              await startGameSession(interaction, client, activeSessions, pool);
+              console.log(`🔄 All players in session ${sessionId} are complete`);
+              await handleGameInteraction(interaction, client, activeSessions, pool, sessionId);
               return;
             }
 

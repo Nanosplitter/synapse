@@ -214,11 +214,54 @@ export async function updateSession(userSessionId, guessHistory) {
 export async function lookupSession(channelId, userId, date) {
   console.log(`🔍 Looking up active session for user ${userId} in channel ${channelId} on date ${date}`);
 
+  const pool = getPool();
+  if (pool) {
+    try {
+      const [mappingRows] = await pool.query(
+        `SELECT m.message_session_id, s.guild_id
+         FROM user_session_mappings m
+         JOIN server_sessions s ON m.message_session_id = s.message_session_id
+         WHERE m.user_session_id LIKE ? AND s.channel_id = ? AND s.game_date = ?`,
+        [`%_${userId}_${date}`, channelId, date]
+      );
+
+      if (mappingRows.length > 0) {
+        const messageSessionId = mappingRows[0].message_session_id;
+        const guildId = mappingRows[0].guild_id;
+
+        if (!activeSessions[messageSessionId]) {
+          await loadSessionFromDB(messageSessionId);
+        }
+
+        if (activeSessions[messageSessionId] && activeSessions[messageSessionId].players[userId]) {
+          const guessHistory = activeSessions[messageSessionId].players[userId].guessHistory || [];
+          console.log(`✅ Found mapped session ${messageSessionId} for user ${userId} on date ${date}`);
+
+          return {
+            found: true,
+            sessionId: messageSessionId,
+            messageSessionId: messageSessionId,
+            guessHistory,
+            session: activeSessions[messageSessionId]
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Error looking up session from DB:", error.message);
+    }
+  }
+
   for (const [sessionId, session] of Object.entries(activeSessions)) {
     if (session.channelId === channelId && session.players[userId]) {
-      if (session.date && session.date !== date) {
-        console.log(`⏭️ Skipping session ${sessionId} - wrong date (${session.date} !== ${date})`);
-        continue;
+      if (session.date) {
+        const sessionDateStr = session.date instanceof Date
+          ? session.date.toISOString().split('T')[0]
+          : session.date;
+
+        if (sessionDateStr !== date) {
+          console.log(`⏭️ Skipping session ${sessionId} - wrong date (${sessionDateStr} !== ${date})`);
+          continue;
+        }
       }
 
       console.log(`✅ Found active session ${sessionId} for user ${userId} on date ${date}`);
@@ -231,48 +274,6 @@ export async function lookupSession(channelId, userId, date) {
         guessHistory: userProgress.guessHistory || [],
         session
       };
-    }
-  }
-
-  const pool = getPool();
-  if (pool) {
-    try {
-      const [sessionRows] = await pool.query(
-        `SELECT s.message_session_id, s.guild_id, s.channel_id, s.game_date
-         FROM server_sessions s
-         WHERE s.channel_id = ? AND s.game_date = ?`,
-        [channelId, date]
-      );
-
-      for (const sessionRow of sessionRows) {
-        const sessionId = sessionRow.message_session_id;
-
-        const [playerRows] = await pool.query(
-          `SELECT user_id, username, avatar_url, guess_history
-           FROM server_session_players
-           WHERE message_session_id = ? AND user_id = ?`,
-          [sessionId, userId]
-        );
-
-        if (playerRows.length > 0) {
-          await loadSessionFromDB(sessionId);
-
-          const player = playerRows[0];
-          const guessHistory = typeof player.guess_history === 'string' ? JSON.parse(player.guess_history) : player.guess_history || [];
-
-          console.log(`✅ Found session ${sessionId} in DB for user ${userId} on date ${date}`);
-
-          return {
-            found: true,
-            sessionId,
-            messageSessionId: sessionId,
-            guessHistory,
-            session: activeSessions[sessionId]
-          };
-        }
-      }
-    } catch (error) {
-      console.error("Error looking up session from DB:", error.message);
     }
   }
 
