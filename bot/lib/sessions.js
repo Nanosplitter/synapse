@@ -51,6 +51,7 @@ export async function startGameSession(interaction, client, activeSessions, pool
       components: [updatedRow]
     });
 
+    const gameDate = getTodayDate();
     const sessionData = {
       sessionId,
       channelId: actualChannelId,
@@ -58,13 +59,13 @@ export async function startGameSession(interaction, client, activeSessions, pool
       guildId,
       players: initialPlayers,
       interaction: null,
-      webhook: webhook
+      webhook: webhook,
+      gameDate,
+      createdAt: Date.now()
     };
 
     activeSessions.set(sessionId, sessionData);
     await saveSession(pool, sessionData);
-
-    const gameDate = getTodayDate();
     await notifySessionStart(sessionId, guildId, actualChannelId, reply.id, gameDate);
     await notifyPlayerJoin(sessionId, userId, username, avatarUrl, guildId, gameDate);
     await saveSessionPlayer(pool, sessionId, { userId, username, avatarUrl, guessHistory: [], lastGuessCount: 0 });
@@ -99,6 +100,8 @@ export async function restoreSessionFromServer(sessionId, activeSessions, client
     channelId: serverSession.channelId,
     messageId: sessionId,
     guildId: serverSession.guildId,
+    gameDate: serverSession.date || serverSession.gameDate || getTodayDate(),
+    createdAt: Date.now(),
     players: Object.entries(serverSession.players || {}).map(([userId, player]) => ({
       userId,
       username: player.username,

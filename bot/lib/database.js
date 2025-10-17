@@ -132,7 +132,7 @@ export async function loadActiveSessions(pool) {
   try {
     const today = getTodayDate();
     const [sessions] = await pool.query(
-      `SELECT session_id, guild_id, channel_id, message_id
+      `SELECT session_id, guild_id, channel_id, message_id, created_at
        FROM active_sessions
        WHERE game_date = ?`,
       [today]
@@ -153,6 +153,8 @@ export async function loadActiveSessions(pool) {
         channelId: session.channel_id,
         messageId: session.message_id,
         guildId: session.guild_id,
+        gameDate: today,
+        createdAt: session.created_at ? new Date(session.created_at).getTime() : Date.now(),
         players: players.map(p => ({
           userId: p.user_id,
           username: p.username,

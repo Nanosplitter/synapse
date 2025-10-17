@@ -24,7 +24,7 @@ export async function buildRecapResponse(guildId, gameDate, pool) {
       );
       completedResults = completedRows;
 
-      const completedUserIds = completedResults.map(r => r.user_id);
+      const completedUserIds = completedResults.map((r) => r.user_id);
 
       const [sessionRows] = await pool.query(
         `SELECT DISTINCT sp.user_id, sp.username, sp.avatar_url, sp.guess_history
@@ -35,12 +35,12 @@ export async function buildRecapResponse(guildId, gameDate, pool) {
       );
 
       incompletePlayers = sessionRows
-        .filter(sp => !completedUserIds.includes(sp.user_id))
-        .map(sp => ({
+        .filter((sp) => !completedUserIds.includes(sp.user_id))
+        .map((sp) => ({
           user_id: sp.user_id,
           username: sp.username,
-          avatar: sp.avatar_url ? sp.avatar_url.split('/').pop().split('.')[0] : null,
-          guessHistory: typeof sp.guess_history === 'string' ? JSON.parse(sp.guess_history) : sp.guess_history || [],
+          avatar: sp.avatar_url ? sp.avatar_url.split("/").pop().split(".")[0] : null,
+          guessHistory: typeof sp.guess_history === "string" ? JSON.parse(sp.guess_history) : sp.guess_history || [],
           completed: false
         }));
     }
@@ -111,7 +111,6 @@ export async function trackSessionCompletion(guildId, channelId, pool) {
 }
 
 export async function checkForRecaps(client, pool) {
-  console.log("🔍 Checking for pending recaps...");
   if (!pool) return;
 
   const recapHour = parseInt(process.env.RECAP_HOUR || "9", 10);
@@ -248,9 +247,7 @@ function buildRecapMessage(completedResults, incompletePlayers, gameDate) {
     const winner = completedResults[0];
     const isPerfect = winner.score === 4 && winner.mistakes === 0;
 
-    message += ` - ${completedResults.length} player${
-      completedResults.length !== 1 ? "s" : ""
-    } completed!\n\n`;
+    message += ` - ${completedResults.length} player${completedResults.length !== 1 ? "s" : ""} completed!\n\n`;
 
     message += `🏆 ${isPerfect ? "**Perfect!** " : ""}<@${winner.user_id}>`;
 
@@ -262,13 +259,13 @@ function buildRecapMessage(completedResults, incompletePlayers, gameDate) {
     }
 
     if (incompletePlayers.length > 0) {
-      message += `\n\n**Started:** ${incompletePlayers.map(p => `<@${p.user_id}>`).join(", ")}`;
+      message += `\n\n**Started:** ${incompletePlayers.map((p) => `<@${p.user_id}>`).join(", ")}`;
     }
   } else {
     message += `\n\n${incompletePlayers.length} player${
       incompletePlayers.length !== 1 ? "s" : ""
     } started but didn't complete.\n\n`;
-    message += incompletePlayers.map(p => `<@${p.user_id}>`).join(", ");
+    message += incompletePlayers.map((p) => `<@${p.user_id}>`).join(", ");
   }
 
   return message;

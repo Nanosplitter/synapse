@@ -4,6 +4,7 @@ import { trackSessionCompletion } from "./recap.js";
 import { saveSessionPlayer, deleteSession } from "./database.js";
 
 const SERVER_URL = process.env.SERVER_URL || "http://localhost:3001";
+const ONE_HOUR_MS = 60 * 60 * 1000;
 
 let wasPolling = false;
 
@@ -107,6 +108,34 @@ export async function checkSessionUpdates(client, activeSessions, pool) {
     } catch (error) {
       console.error(`Error checking session ${sessionId}:`, error.message);
       activeSessions.delete(sessionId);
+    }
+  }
+}
+
+export async function cleanupOldSessions(activeSessions, pool) {
+  const now = Date.now();
+  const sessionsToRemove = [];
+
+  for (const [sessionId, session] of activeSessions.entries()) {
+    const age = now - (session.createdAt || now);
+
+    if (age > ONE_HOUR_MS) {
+      sessionsToRemove.push({ sessionId, session });
+    }
+  }
+
+  if (sessionsToRemove.length > 0) {
+    console.log(`🧹 Cleaning up ${sessionsToRemove.length} session(s) older than 1 hour`);
+
+    for (const { sessionId, session } of sessionsToRemove) {
+      try {
+        await trackSessionCompletion(session.guildId, session.channelId, pool);
+        activeSessions.delete(sessionId);
+        await deleteSession(pool, sessionId);
+        console.log(`✓ Cleaned up session ${sessionId} (age: ${Math.round((now - session.createdAt) / 1000 / 60)} minutes)`);
+      } catch (error) {
+        console.error(`Error cleaning up session ${sessionId}:`, error.message);
+      }
     }
   }
 }

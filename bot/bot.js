@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { initializeDatabase, loadActiveSessions } from "./lib/database.js";
 import { startGameSession, restoreSessionFromServer } from "./lib/sessions.js";
-import { checkSessionUpdates } from "./lib/session-updates.js";
+import { checkSessionUpdates, cleanupOldSessions } from "./lib/session-updates.js";
 import { hasActivePlayer, handlePlayerJoin } from "./lib/player-handler.js";
 import { launchActivity, getDisplayName } from "./lib/discord-utils.js";
 import { hasPlayerCompletedGame } from "./lib/server-api.js";
@@ -63,14 +63,12 @@ async function handleGameInteraction(interaction, client, activeSessions, pool, 
 
   if (!existingSession) {
     existingSession = Array.from(activeSessions.values()).find(
-      (s) => s.channelId === channelId && s.sessionId !== excludeSessionId
+      (s) => s.channelId === channelId && s.sessionId !== excludeSessionId && s.gameDate === today
     );
   }
 
   if (existingSession) {
-    console.log(
-      `📌 Found existing session ${existingSession.sessionId} in channel ${channelId}, joining that instead`
-    );
+    console.log(`📌 Found existing session ${existingSession.sessionId} in channel ${channelId}, joining that instead`);
 
     const username = getDisplayName(interaction);
 
@@ -122,6 +120,9 @@ client.on("ready", async () => {
 
   setInterval(() => checkSessionUpdates(client, activeSessions, pool), 5000);
   console.log("✓ Started polling for session updates");
+
+  setInterval(() => cleanupOldSessions(activeSessions, pool), 60000);
+  console.log("✓ Started cleanup for sessions older than 1 hour");
 
   setInterval(() => checkForRecaps(client, pool), 30000);
   console.log("✓ Started polling for recaps (9:05am EST)");
@@ -193,6 +194,14 @@ client.on("interactionCreate", async (interaction) => {
           const username = getDisplayName(interaction);
           const guildId = session.guildId || "dm";
           const today = getTodayDate();
+
+          if (session.gameDate !== today) {
+            console.log(
+              `📅 Session ${sessionId} is from ${session.gameDate}, not today (${today}) - starting new session`
+            );
+            await handleGameInteraction(interaction, client, activeSessions, pool, sessionId);
+            return;
+          }
 
           const hasCompleted = await hasPlayerCompletedGame(guildId, userId, today);
           if (hasCompleted) {

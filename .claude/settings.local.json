@@ -5,7 +5,8 @@
       "Bash(docker-compose up:*)",
       "Bash(npm install:*)",
       "Bash(npm run register:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []
