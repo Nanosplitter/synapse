@@ -3,6 +3,13 @@ npm-debug.log
 .git
 .gitignore
 .env.local
+.env
+.env.*
+stack.env
+**/.env
+**/.env.*
+**/audit-result.json
+source.tgz
 .vscode
 *.md
 client/node_modules
