@@ -33,7 +33,7 @@ describe("api", () => {
 
       const result = await fetchGameData("2024-10-02");
 
-      expect(global.fetch).toHaveBeenCalledWith("/api/connections/2024-10-02");
+      expect(global.fetch).toHaveBeenCalledWith("/api/synapse/2024-10-02");
       expect(result.categories).toHaveLength(2);
       expect(result.categories[0]).toEqual({
         group: "FRUITS",

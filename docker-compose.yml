@@ -7,7 +7,6 @@ services:
       target: server
       args:
         VITE_DISCORD_CLIENT_ID: ${VITE_DISCORD_CLIENT_ID}
-        DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
         VITE_DEV_MODE: ${VITE_DEV_MODE}
     container_name: synapse-game
     restart: unless-stopped
@@ -40,7 +39,7 @@ services:
       - synapse-network
 
   cloudflare-tunnel:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.10.3
     container_name: cloudflare-tunnel
     restart: unless-stopped
     command: tunnel run

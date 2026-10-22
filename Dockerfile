@@ -1,10 +1,12 @@
+# Keep every stage on the October 2026 security release or newer.
+ARG NODE_VERSION=24.22.1
+
 # Build stage for client
-FROM node:18-alpine AS client-builder
+FROM node:${NODE_VERSION}-alpine AS client-builder
 WORKDIR /app/client
 
 # Accept build args for environment variables
 ARG VITE_DISCORD_CLIENT_ID
-ARG DISCORD_CLIENT_SECRET
 ARG VITE_DEV_MODE
 
 # Set as environment variables for the build
@@ -17,12 +19,15 @@ COPY client/ ./
 RUN npm run build
 
 # Production stage for server
-FROM node:18-alpine AS server
+FROM node:${NODE_VERSION}-alpine AS server
 WORKDIR /app
+
+COPY scripts/check-node-security.cjs /usr/local/lib/check-node-security.cjs
+RUN node /usr/local/lib/check-node-security.cjs
 
 # Install server dependencies
 COPY server/package*.json ./server/
-RUN cd server && npm ci --production
+RUN cd server && npm ci --omit=dev
 
 # Copy server code
 COPY server/ ./server/
@@ -37,8 +42,11 @@ EXPOSE 3001
 CMD ["node", "server/server.js"]
 
 # Production stage for bot
-FROM node:18-alpine AS bot
+FROM node:${NODE_VERSION}-alpine AS bot
 WORKDIR /app
+
+COPY scripts/check-node-security.cjs /usr/local/lib/check-node-security.cjs
+RUN node /usr/local/lib/check-node-security.cjs
 
 # Install build dependencies for canvas and fonts
 RUN apk add --no-cache \
@@ -55,7 +63,7 @@ RUN apk add --no-cache \
 
 # Install bot dependencies
 COPY bot/package*.json ./bot/
-RUN cd bot && npm ci --production
+RUN cd bot && npm ci --omit=dev
 
 # Copy bot code
 COPY bot/ ./bot/
